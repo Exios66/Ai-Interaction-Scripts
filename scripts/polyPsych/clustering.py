@@ -3,6 +3,8 @@ from tkinter import filedialog, messagebox, ttk
 import pandas as pd
 import numpy as np
 import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.decomposition import PCA, TruncatedSVD
@@ -17,67 +19,82 @@ import logging
 import json
 import os
 from datetime import datetime
+import sys
+import traceback
+from scripts.utils.logging_config import setup_logging
+import warnings
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                   format='%(asctime)s - %(levelname)s - %(message)s',
-                   filename='analysis_log.txt')
+# Configure warnings to be captured by logging
+warnings.filterwarnings('always')
+logging.captureWarnings(True)
 
-# Download NLTK resources
-try:
-    nltk.download('stopwords', quiet=True)
-    nltk.download('punkt', quiet=True)
-    nltk.download('wordnet', quiet=True)
-    from nltk.corpus import stopwords, wordnet
-    from nltk.tokenize import word_tokenize
-    from nltk.stem import WordNetLemmatizer
-except Exception as e:
-    logging.error(f"Error downloading NLTK resources: {str(e)}")
+# Replace the existing logging configuration with:
+logger = setup_logging()
+# Initialize NLTK components
+nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('stopwords')
 
-# Initialize NLP tools
+# Initialize stop words
 stop_words = set(stopwords.words('english'))
-lemmatizer = WordNetLemmatizer()
+nltk.download('wordnet')
+
+# Initialize lemmatizer
+lemmatizer = nltk.WordNetLemmatizer()
 
 class DataAnalysisApp:
     def __init__(self, root):
-        self.root = root
-        self.root.title("Advanced Data Analysis Suite")
-        self.root.state('zoomed')  # Start maximized
+        try:
+            logger.info("Initializing DataAnalysisApp")
+            self.root = root
+            self.root.title("Advanced Data Analysis Suite")
+            self.root.state('zoomed')
 
-        # Initialize data structures
-        self.initialize_data_structures()
-        
-        # Create main container
-        self.main_container = ttk.Frame(self.root)
-        self.main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Create GUI elements
-        self.create_menu()
-        self.create_widgets()
-        self.create_status_bar()
-        
-        # Load config if exists
-        self.load_config()
+            # Initialize data structures
+            self.initialize_data_structures()
+            
+            # Create main container
+            self.main_container = ttk.Frame(self.root)
+            self.main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            
+            # Create GUI elements
+            self.create_menu()
+            self.create_widgets()
+            self.create_status_bar()
+            
+            # Load config if exists
+            self.load_config()
+            logger.info("DataAnalysisApp initialization completed successfully")
+        except Exception as e:
+            logger.critical(f"Failed to initialize application: {str(e)}", exc_info=True)
+            messagebox.showerror("Critical Error", "Failed to initialize application. Check logs for details.")
+            sys.exit(1)
 
     def initialize_data_structures(self):
         """Initialize all data-related attributes"""
-        self.quant_data = None
-        self.qual_data = None
-        self.quant_data_scaled = None
-        self.tfidf_matrix = None
-        self.kmeans = None
-        self.dbscan = None
-        self.qual_pca = None
-        self.combined_data = None
-        self.cluster_metrics = {}
-        self.analysis_results = {}
-        self.config = {
-            'last_quant_path': '',
-            'last_qual_path': '',
-            'default_clusters': 5,
-            'min_df': 5,
-            'max_df': 0.85
-        }
+        try:
+            logger.debug("Initializing data structures")
+            self.quant_data = None
+            self.qual_data = None
+            self.quant_data_scaled = None
+            self.tfidf_matrix = None
+            self.kmeans = None
+            self.dbscan = None
+            self.qual_pca = None
+            self.combined_data = None
+            self.cluster_metrics = {}
+            self.analysis_results = {}
+            self.config = {
+                'last_quant_path': '',
+                'last_qual_path': '',
+                'default_clusters': 5,
+                'min_df': 5,
+                'max_df': 0.85
+            }
+            logger.debug("Data structures initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing data structures: {str(e)}", exc_info=True)
+            raise
 
     def create_menu(self):
         """Create application menu bar"""
@@ -212,13 +229,23 @@ class DataAnalysisApp:
         self.root.update_idletasks()
 
     def load_config(self):
-        """Load configuration from file"""
+        """Load configuration from file with enhanced error handling"""
+        logger.info("Attempting to load configuration")
         try:
             if os.path.exists('analysis_config.json'):
                 with open('analysis_config.json', 'r') as f:
-                    self.config.update(json.load(f))
+                    loaded_config = json.load(f)
+                    logger.debug(f"Loaded configuration: {loaded_config}")
+                    self.config.update(loaded_config)
+                logger.info("Configuration loaded successfully")
+            else:
+                logger.warning("No configuration file found, using defaults")
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in configuration file: {str(e)}", exc_info=True)
+            messagebox.showwarning("Config Error", "Invalid configuration file format. Using defaults.")
         except Exception as e:
-            logging.error(f"Error loading config: {str(e)}")
+            logger.error(f"Unexpected error loading configuration: {str(e)}", exc_info=True)
+            messagebox.showwarning("Config Error", f"Error loading configuration: {str(e)}")
 
     def save_config(self):
         """Save configuration to file"""
@@ -226,7 +253,8 @@ class DataAnalysisApp:
             with open('analysis_config.json', 'w') as f:
                 json.dump(self.config, f)
         except Exception as e:
-            logging.error(f"Error saving config: {str(e)}")
+            logger.error(f"Error saving config: {str(e)}", exc_info=True)
+            messagebox.showwarning("Config Error", f"Error saving configuration: {str(e)}")
 
     def export_results(self):
         """Export analysis results to file"""
@@ -244,7 +272,7 @@ class DataAnalysisApp:
                     json.dump(self.analysis_results, f, indent=4)
                 self.update_status(f"Results exported to {filename}")
         except Exception as e:
-            logging.error(f"Error exporting results: {str(e)}")
+            logger.error(f"Error exporting results: {str(e)}", exc_info=True)
             messagebox.showerror("Error", f"Failed to export results: {str(e)}")
 
     def show_clustering_options(self):
@@ -266,41 +294,57 @@ class DataAnalysisApp:
                   command=lambda: self.cluster_data('hierarchical', int(n_clusters.get()))).pack(pady=5)
 
     def cluster_data(self, method='kmeans', n_clusters=5):
-        """Perform clustering analysis"""
+        """Perform clustering analysis with enhanced error handling and logging"""
+        logger.info(f"Starting clustering analysis using method: {method}")
+        
         if self.qual_data is None or 'processed_text' not in self.qual_data.columns:
+            logger.warning("Attempted clustering without preprocessed data")
             messagebox.showwarning("Warning", "Please preprocess the data before clustering.")
             return
 
         try:
-            # TF-IDF Vectorization
+            logger.debug("Initializing TF-IDF vectorization")
             tfidf_vectorizer = TfidfVectorizer(
                 max_df=self.config['max_df'], 
                 min_df=self.config['min_df'],
                 stop_words='english'
             )
             self.tfidf_matrix = tfidf_vectorizer.fit_transform(self.qual_data['processed_text'])
+            logger.info(f"TF-IDF matrix shape: {self.tfidf_matrix.shape}")
 
             if method == 'kmeans':
+                logger.debug(f"Performing K-means clustering with {n_clusters} clusters")
                 self.kmeans = KMeans(n_clusters=n_clusters, random_state=42)
                 self.qual_data['cluster'] = self.kmeans.fit_predict(self.tfidf_matrix)
                 
-                # Calculate clustering metrics
+                # Calculate and log clustering metrics
                 self.cluster_metrics['silhouette'] = silhouette_score(self.tfidf_matrix, self.qual_data['cluster'])
                 self.cluster_metrics['calinski'] = calinski_harabasz_score(self.tfidf_matrix.toarray(), self.qual_data['cluster'])
+                logger.info(f"Clustering metrics - Silhouette: {self.cluster_metrics['silhouette']:.3f}, "
+                          f"Calinski-Harabasz: {self.cluster_metrics['calinski']:.3f}")
                 
             elif method == 'dbscan':
+                logger.debug("Performing DBSCAN clustering")
                 self.dbscan = DBSCAN(eps=0.5, min_samples=5)
                 self.qual_data['cluster'] = self.dbscan.fit_predict(self.tfidf_matrix.toarray())
                 
             elif method == 'hierarchical':
+                logger.debug(f"Performing hierarchical clustering with {n_clusters} clusters")
                 linked = linkage(self.tfidf_matrix.toarray(), method='ward')
                 self.qual_data['cluster'] = fcluster(linked, n_clusters, criterion='maxclust')
 
+            logger.info(f"Clustering completed successfully using {method}")
             self.update_status(f"Clustering completed using {method}")
             self.show_clustering_results()
             
+        except ValueError as e:
+            logger.error(f"Invalid value error during clustering: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Invalid values for clustering: {str(e)}")
+        except MemoryError as e:
+            logger.error("Memory error during clustering", exc_info=True)
+            messagebox.showerror("Error", "Not enough memory to perform clustering. Try reducing data size.")
         except Exception as e:
-            logging.error(f"Error in clustering: {str(e)}")
+            logger.error(f"Unexpected error during clustering: {str(e)}", exc_info=True)
             messagebox.showerror("Error", f"Clustering failed: {str(e)}")
 
     def show_clustering_results(self):
@@ -453,7 +497,226 @@ class DataAnalysisApp:
         self.results_text.delete(1.0, tk.END)
         self.results_text.insert(tk.END, results)
 
+    def show_cluster_settings(self):
+        """Show dialog for cluster settings"""
+        logger.debug("Opening cluster settings dialog")
+        settings_dialog = tk.Toplevel(self.root)
+        settings_dialog.title("Clustering Parameters")
+        settings_dialog.geometry("400x300")
+
+        # Create settings form
+        ttk.Label(settings_dialog, text="Default number of clusters:").pack(pady=5)
+        n_clusters = ttk.Entry(settings_dialog)
+        n_clusters.insert(0, str(self.config['default_clusters']))
+        n_clusters.pack(pady=5)
+
+        ttk.Label(settings_dialog, text="Min document frequency:").pack(pady=5)
+        min_df = ttk.Entry(settings_dialog)
+        min_df.insert(0, str(self.config['min_df']))
+        min_df.pack(pady=5)
+
+        ttk.Label(settings_dialog, text="Max document frequency:").pack(pady=5)
+        max_df = ttk.Entry(settings_dialog)
+        max_df.insert(0, str(self.config['max_df']))
+        max_df.pack(pady=5)
+
+        def save_settings():
+            try:
+                self.config['default_clusters'] = int(n_clusters.get())
+                self.config['min_df'] = float(min_df.get())
+                self.config['max_df'] = float(max_df.get())
+                self.save_config()
+                settings_dialog.destroy()
+                logger.info("Cluster settings saved successfully")
+            except ValueError as e:
+                logger.error(f"Invalid value in cluster settings: {str(e)}")
+                messagebox.showerror("Error", "Please enter valid numerical values")
+
+        ttk.Button(settings_dialog, text="Save", command=save_settings).pack(pady=20)
+
+    def show_viz_settings(self):
+        """Show dialog for visualization settings"""
+        logger.debug("Opening visualization settings dialog")
+        viz_dialog = tk.Toplevel(self.root)
+        viz_dialog.title("Visualization Options")
+        viz_dialog.geometry("400x300")
+
+        # Plot style settings
+        ttk.Label(viz_dialog, text="Plot Style:").pack(pady=5)
+        style_var = tk.StringVar(value='seaborn')
+        styles = ttk.Combobox(viz_dialog, textvariable=style_var, 
+                            values=['seaborn', 'classic', 'dark_background', 'bmh'])
+        styles.pack(pady=5)
+
+        # Color map settings
+        ttk.Label(viz_dialog, text="Color Map:").pack(pady=5)
+        cmap_var = tk.StringVar(value='Set2')
+        cmaps = ttk.Combobox(viz_dialog, textvariable=cmap_var,
+                            values=['Set2', 'viridis', 'plasma', 'inferno'])
+        cmaps.pack(pady=5)
+
+        def apply_settings():
+            try:
+                plt.style.use(style_var.get())
+                self.config['plot_style'] = style_var.get()
+                self.config['color_map'] = cmap_var.get()
+                self.save_config()
+                viz_dialog.destroy()
+                logger.info("Visualization settings applied")
+            except Exception as e:
+                logger.error(f"Error applying visualization settings: {str(e)}")
+                messagebox.showerror("Error", "Failed to apply visualization settings")
+
+        ttk.Button(viz_dialog, text="Apply", command=apply_settings).pack(pady=20)
+
+    def show_documentation(self):
+        """Show documentation window"""
+        logger.debug("Opening documentation window")
+        doc_window = tk.Toplevel(self.root)
+        doc_window.title("Documentation")
+        doc_window.geometry("600x400")
+
+        doc_text = tk.Text(doc_window, wrap=tk.WORD, padx=10, pady=10)
+        doc_text.pack(fill=tk.BOTH, expand=True)
+
+        # Add documentation content
+        documentation = """
+        AI Interaction Scripts Documentation
+
+        1. Data Loading:
+           - Load quantitative data: Numerical data in CSV format
+           - Load qualitative data: Text data in CSV format
+
+        2. Preprocessing:
+           - Text cleaning and normalization
+           - Feature extraction using TF-IDF
+           - Data scaling for numerical features
+
+        3. Clustering Methods:
+           - K-Means: Traditional centroid-based clustering
+           - DBSCAN: Density-based clustering
+           - Hierarchical: Tree-based clustering
+
+        4. Visualization:
+           - 2D PCA plots of clusters
+           - Hierarchical dendrograms
+           - Statistical analysis plots
+
+        5. Results Export:
+           - JSON format for further analysis
+           - Detailed metrics and statistics
+        """
+
+        doc_text.insert(tk.END, documentation)
+        doc_text.config(state=tk.DISABLED)
+
+    def show_about(self):
+        """Show about dialog"""
+        logger.debug("Opening about dialog")
+        about_text = """
+        AI Interaction Scripts
+        Version 1.0.0
+
+        A comprehensive tool for psychological data analysis
+        and clustering.
+
+        Created by: Your Name
+        License: MIT
+        """
+        messagebox.showinfo("About", about_text)
+
+    def load_quant_data(self):
+        """Load quantitative data with error handling"""
+        logger.info("Attempting to load quantitative data")
+        try:
+            filename = filedialog.askopenfilename(
+                title="Select Quantitative Data File",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+            )
+            
+            if filename:
+                self.quant_data = pd.read_csv(filename)
+                self.config['last_quant_path'] = filename
+                self.save_config()
+                
+                # Update preview
+                preview = f"Quantitative Data Preview:\n{self.quant_data.head()}\n"
+                preview += f"\nShape: {self.quant_data.shape}"
+                self.preview_text.delete(1.0, tk.END)
+                self.preview_text.insert(tk.END, preview)
+                
+                logger.info(f"Successfully loaded quantitative data: {filename}")
+                self.update_status("Quantitative data loaded successfully")
+        except pd.errors.EmptyDataError:
+            logger.error("Empty data file selected")
+            messagebox.showerror("Error", "The selected file is empty")
+        except Exception as e:
+            logger.error(f"Error loading quantitative data: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to load data: {str(e)}")
+
+    def load_qual_data(self):
+        """Load qualitative data with error handling"""
+        logger.info("Attempting to load qualitative data")
+        try:
+            filename = filedialog.askopenfilename(
+                title="Select Qualitative Data File",
+                filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+            )
+            
+            if filename:
+                self.qual_data = pd.read_csv(filename)
+                self.config['last_qual_path'] = filename
+                self.save_config()
+                
+                # Update preview
+                preview = f"Qualitative Data Preview:\n{self.qual_data.head()}\n"
+                preview += f"\nShape: {self.qual_data.shape}"
+                self.preview_text.delete(1.0, tk.END)
+                self.preview_text.insert(tk.END, preview)
+                
+                logger.info(f"Successfully loaded qualitative data: {filename}")
+                self.update_status("Qualitative data loaded successfully")
+        except pd.errors.EmptyDataError:
+            logger.error("Empty data file selected")
+            messagebox.showerror("Error", "The selected file is empty")
+        except Exception as e:
+            logger.error(f"Error loading qualitative data: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to load data: {str(e)}")
+
+    def preprocess_data(self):
+        """Preprocess both quantitative and qualitative data"""
+        logger.info("Starting data preprocessing")
+        try:
+            if self.qual_data is not None:
+                logger.debug("Preprocessing qualitative data")
+                # Process text data
+                self.qual_data['processed_text'] = self.qual_data['text'].apply(self.preprocess_text)
+                
+            if self.quant_data is not None:
+                logger.debug("Preprocessing quantitative data")
+                # Scale numerical data
+                scaler = StandardScaler()
+                numeric_cols = self.quant_data.select_dtypes(include=[np.number]).columns
+                self.quant_data_scaled = pd.DataFrame(
+                    scaler.fit_transform(self.quant_data[numeric_cols]),
+                    columns=numeric_cols
+                )
+            
+            self.update_status("Data preprocessing completed")
+            logger.info("Data preprocessing completed successfully")
+            messagebox.showinfo("Success", "Data preprocessing completed")
+            
+        except Exception as e:
+            logger.error(f"Error in data preprocessing: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Preprocessing failed: {str(e)}")
+
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = DataAnalysisApp(root)
-    root.mainloop()
+    try:
+        root = tk.Tk()
+        app = DataAnalysisApp(root)
+        logger.info("Application started successfully")
+        root.mainloop()
+    except Exception as e:
+        logger.critical("Fatal error in main loop", exc_info=True)
+        messagebox.showerror("Critical Error", f"Application crashed: {str(e)}")
+        sys.exit(1)
