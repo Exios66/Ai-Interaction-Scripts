@@ -1,0 +1,17 @@
+# Data Processing and Analysis
+pandas
+numpy
+nltk
+scikit-learn
+scipy
+matplotlib
+seaborn
+
+# Statistical Analysis
+statsmodels
+
+# GUI
+tkinter
+
+# Data Visualization
+matplotlib 
