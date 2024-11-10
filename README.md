@@ -49,8 +49,10 @@ pip install -r requirements.txt
 ```bash
 Ai-Interaction-Scripts/
 ├── scripts/
-│   └── polyPsych/
-│       └── clustering.py
+│   ├── polyPsych/
+│   │   └── clustering.py
+│   └── utils/
+│       └── logging_config.py
 ├── requirements.txt
 ├── LICENSE
 └── README.md
