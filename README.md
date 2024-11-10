@@ -28,7 +28,7 @@ git clone https://github.com/yourusername/Ai-Interaction-Scripts.git
 cd Ai-Interaction-Scripts
 ```
 
-2. Create and activate a virtual environment (recommended):
+1. Create and activate a virtual environment (recommended):
 
 ```bash
 python -m venv venv
@@ -38,7 +38,7 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-3. Install required packages:
+1. Install required packages:
 
 ```bash
 pip install -r requirements.txt
@@ -64,7 +64,7 @@ Ai-Interaction-Scripts/
 
 To run the psychological clustering analysis:
 
-
+```bash
 python scripts/polyPsych/clustering.py
 ```
 
