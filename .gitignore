@@ -1,0 +1,10 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+
+# Logs  
+logs/
+debug_logs/
+nltk_data/
+# Output of data processing
+output/ 
