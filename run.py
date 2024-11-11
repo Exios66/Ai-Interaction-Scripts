@@ -63,9 +63,10 @@ def main():
             print("1. Load and analyze patient responses from CSV")
             print("2. Run example analysis")
             print("3. View debug log")
-            print("4. Exit")
+            print("4. Export results and visualizations")
+            print("5. Exit")
             
-            choice = input("Select an option (1-4): ")
+            choice = input("Select an option (1-5): ")
             
             if choice == '1':
                 with DebugContext("CSV analysis", logger):
@@ -84,6 +85,13 @@ def main():
                             print("\nSummary Statistics:")
                             for key, value in results['verification_analysis']['summary'].items():
                                 print(f"{key}: {value:.2f}")
+                            
+                            # Ask if user wants to export results
+                            if input("\nExport results? (y/n): ").lower() == 'y':
+                                if analyzer.export_results(results):
+                                    print("Results exported successfully")
+                                if analyzer.create_visualizations(results):
+                                    print("Visualizations created successfully")
                         else:
                             print("Analysis failed. Check debug log for details.")
                     else:
@@ -138,11 +146,20 @@ def main():
                     print(f"Error reading debug log: {str(e)}")
                     
             elif choice == '4':
+                if hasattr(analyzer, 'results'):
+                    if analyzer.export_results(analyzer.results):
+                        print("Results exported successfully")
+                    if analyzer.create_visualizations(analyzer.results):
+                        print("Visualizations created successfully")
+                else:
+                    print("No results available. Please run analysis first.")
+                    
+            elif choice == '5':
                 print("Exiting...")
                 break
                 
             else:
-                print("Invalid choice. Please select 1-4.")
+                print("Invalid choice. Please select 1-5.")
 
     except Exception as e:
         log_error_details(logger, e, "main execution")

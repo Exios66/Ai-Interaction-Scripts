@@ -8,6 +8,10 @@ import sys
 from tkinter import filedialog
 import tkinter as tk
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
+import json
 
 # Add parent directory to Python path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -358,6 +362,104 @@ class OpenEndedAnalysis:
         except Exception as e:
             log_error_details(logger, e, "patient response analysis")
             return None
+
+    @function_debug_decorator
+    def export_results(self, results, export_dir='exports'):
+        """Export analysis results to various formats"""
+        try:
+            # Create export directory if it doesn't exist
+            if not os.path.exists(export_dir):
+                os.makedirs(export_dir)
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # Export coded responses to CSV
+            if 'definition_analysis' in results:
+                coded_df = results['definition_analysis']['coding']
+                csv_path = os.path.join(export_dir, f'coded_responses_{timestamp}.csv')
+                coded_df.to_csv(csv_path, index=False)
+                logger.info(f"Coded responses exported to: {csv_path}")
+
+            # Export themes to JSON
+            if 'definition_analysis' in results and 'themes' in results['definition_analysis']:
+                themes_path = os.path.join(export_dir, f'themes_{timestamp}.json')
+                with open(themes_path, 'w') as f:
+                    json.dump(results['definition_analysis']['themes'], f, indent=4)
+                logger.info(f"Themes exported to: {themes_path}")
+
+            # Export verification analysis to CSV
+            if 'verification_analysis' in results:
+                verif_df = pd.DataFrame({
+                    'steps': results['verification_analysis']['steps']
+                })
+                verif_path = os.path.join(export_dir, f'verification_analysis_{timestamp}.csv')
+                verif_df.to_csv(verif_path, index=False)
+                logger.info(f"Verification analysis exported to: {verif_path}")
+
+            # Export summary statistics
+            if 'verification_analysis' in results and 'summary' in results['verification_analysis']:
+                stats_path = os.path.join(export_dir, f'summary_stats_{timestamp}.json')
+                with open(stats_path, 'w') as f:
+                    json.dump(results['verification_analysis']['summary'], f, indent=4)
+                logger.info(f"Summary statistics exported to: {stats_path}")
+
+            return True
+        except Exception as e:
+            logger.error(f"Error exporting results: {str(e)}", exc_info=True)
+            return False
+
+    @function_debug_decorator
+    def create_visualizations(self, results, export_dir='exports'):
+        """Create and export data visualizations"""
+        try:
+            if not os.path.exists(export_dir):
+                os.makedirs(export_dir)
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # Theme frequency visualization
+            if 'definition_analysis' in results and 'themes' in results['definition_analysis']:
+                plt.figure(figsize=(12, 6))
+                themes = results['definition_analysis']['themes']
+                plt.bar(themes.keys(), themes.values())
+                plt.title('Theme Frequencies in Responses')
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                theme_plot_path = os.path.join(export_dir, f'theme_frequencies_{timestamp}.png')
+                plt.savefig(theme_plot_path)
+                plt.close()
+                logger.info(f"Theme frequency plot saved to: {theme_plot_path}")
+
+            # Verification steps distribution
+            if 'verification_analysis' in results and 'steps' in results['verification_analysis']:
+                plt.figure(figsize=(10, 6))
+                steps = results['verification_analysis']['steps']
+                sns.histplot(steps, bins=max(steps)-min(steps)+1)
+                plt.title('Distribution of Verification Steps')
+                plt.xlabel('Number of Steps')
+                plt.ylabel('Frequency')
+                steps_plot_path = os.path.join(export_dir, f'verification_steps_{timestamp}.png')
+                plt.savefig(steps_plot_path)
+                plt.close()
+                logger.info(f"Verification steps plot saved to: {steps_plot_path}")
+
+            # Coding categories visualization
+            if 'definition_analysis' in results and 'coding' in results['definition_analysis']:
+                plt.figure(figsize=(10, 6))
+                coding_sums = results['definition_analysis']['coding'].sum()
+                plt.bar(coding_sums.index, coding_sums.values)
+                plt.title('Frequency of Coding Categories')
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                coding_plot_path = os.path.join(export_dir, f'coding_frequencies_{timestamp}.png')
+                plt.savefig(coding_plot_path)
+                plt.close()
+                logger.info(f"Coding frequencies plot saved to: {coding_plot_path}")
+
+            return True
+        except Exception as e:
+            logger.error(f"Error creating visualizations: {str(e)}", exc_info=True)
+            return False
 
 # Example usage
 if __name__ == "__main__":
