@@ -5,6 +5,9 @@ from nltk.corpus import stopwords
 import logging
 import os
 import sys
+from tkinter import filedialog
+import tkinter as tk
+import numpy as np
 
 # Add parent directory to Python path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -21,6 +24,8 @@ class OpenEndedAnalysis:
             self._download_nltk_data()
             self.stop_words = set(stopwords.words('english'))
             self._initialize_tokenizer()
+            self.data = None
+            self.response_columns = None
             logger.info("Initialization complete")
         except Exception as e:
             logger.error(f"Initialization failed: {str(e)}", exc_info=True)
@@ -208,6 +213,129 @@ class OpenEndedAnalysis:
         except Exception as e:
             logger.error(f"Error in theme analysis: {str(e)}", exc_info=True)
             raise
+
+    def load_csv_data(self, file_path=None):
+        """
+        Load patient response data from CSV
+        
+        Args:
+            file_path (str, optional): Path to CSV file. If None, opens file dialog
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            if file_path is None:
+                file_path = filedialog.askopenfilename(
+                    title="Select Patient Response CSV File",
+                    filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+                )
+                
+            if not file_path:  # User cancelled
+                return False
+                
+            logger.info(f"Loading data from: {file_path}")
+            self.data = pd.read_csv(file_path)
+            
+            # Get column names for responses
+            self.select_response_columns()
+            
+            if self.response_columns is None:
+                logger.error("No response columns selected")
+                return False
+                
+            logger.info(f"Data loaded successfully. Shape: {self.data.shape}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error loading CSV data: {str(e)}", exc_info=True)
+            return False
+
+    def select_response_columns(self):
+        """Open dialog for selecting response columns"""
+        if self.data is None:
+            return
+
+        root = tk.Tk()
+        root.title("Select Response Columns")
+        root.geometry("400x300")
+
+        frame = tk.Frame(root)
+        frame.pack(padx=10, pady=10)
+
+        tk.Label(frame, text="Select Fake News Definition Column:").pack()
+        definition_var = tk.StringVar()
+        definition_menu = tk.OptionMenu(frame, definition_var, *self.data.columns)
+        definition_menu.pack(pady=5)
+
+        tk.Label(frame, text="Select Verification Steps Column:").pack()
+        verification_var = tk.StringVar()
+        verification_menu = tk.OptionMenu(frame, verification_var, *self.data.columns)
+        verification_menu.pack(pady=5)
+
+        def on_submit():
+            self.response_columns = {
+                'definition': definition_var.get(),
+                'verification': verification_var.get()
+            }
+            root.destroy()
+
+        tk.Button(frame, text="Submit", command=on_submit).pack(pady=20)
+        root.mainloop()
+
+    def analyze_patient_responses(self):
+        """Analyze loaded patient responses"""
+        if self.data is None or self.response_columns is None:
+            logger.error("No data loaded or columns selected")
+            return None
+
+        try:
+            results = {
+                'definition_analysis': {},
+                'verification_analysis': {}
+            }
+
+            # Analyze fake news definitions
+            definitions = self.data[self.response_columns['definition']].dropna()
+            
+            # Code the definitions
+            coding_scheme = {
+                'misinformation': ['false', 'fake', 'lie', 'misinformation'],
+                'intentionally deceptive': ['intentionally', 'deliberate', 'purposely'],
+                'platform': ['social media', 'internet', 'online'],
+                'purpose': ['mislead', 'deceive', 'chaos', 'confusion']
+            }
+            
+            results['definition_analysis']['coding'] = self.quantify_responses(
+                definitions.tolist(), 
+                coding_scheme
+            )
+            
+            # Analyze themes in definitions
+            results['definition_analysis']['themes'] = self.analyze_themes(
+                definitions.tolist()
+            )
+
+            # Analyze verification steps
+            verifications = self.data[self.response_columns['verification']].dropna()
+            results['verification_analysis']['steps'] = self.quantify_verification_steps(
+                verifications.tolist()
+            )
+            
+            # Calculate summary statistics
+            results['verification_analysis']['summary'] = {
+                'mean_steps': np.mean(results['verification_analysis']['steps']),
+                'median_steps': np.median(results['verification_analysis']['steps']),
+                'max_steps': max(results['verification_analysis']['steps']),
+                'min_steps': min(results['verification_analysis']['steps'])
+            }
+
+            logger.info("Patient response analysis completed successfully")
+            return results
+
+        except Exception as e:
+            logger.error(f"Error analyzing patient responses: {str(e)}", exc_info=True)
+            return None
 
 # Example usage
 if __name__ == "__main__":
