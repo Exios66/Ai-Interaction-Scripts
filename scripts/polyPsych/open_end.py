@@ -12,25 +12,37 @@ import numpy as np
 # Add parent directory to Python path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from scripts.utils.logging_config import setup_logging
+from scripts.utils.debug_utils import (
+    function_debug_decorator, 
+    DebugContext, 
+    log_error_details,
+    setup_debug_logging
+)
 
 # Initialize logger
 logger = setup_logging()
 
+# Add debug logging setup
+debug_log_path = setup_debug_logging()
+
 class OpenEndedAnalysis:
+    @function_debug_decorator
     def __init__(self):
         """Initialize the OpenEndedAnalysis class with required NLTK downloads"""
         try:
             logger.info("Initializing OpenEndedAnalysis")
-            self._download_nltk_data()
-            self.stop_words = set(stopwords.words('english'))
-            self._initialize_tokenizer()
-            self.data = None
-            self.response_columns = None
+            with DebugContext("initialization", logger):
+                self._download_nltk_data()
+                self.stop_words = set(stopwords.words('english'))
+                self._initialize_tokenizer()
+                self.data = None
+                self.response_columns = None
             logger.info("Initialization complete")
         except Exception as e:
-            logger.error(f"Initialization failed: {str(e)}", exc_info=True)
+            log_error_details(logger, e, "initialization")
             raise
 
+    @function_debug_decorator
     def _download_nltk_data(self):
         """Download required NLTK data packages"""
         try:
@@ -65,6 +77,7 @@ class OpenEndedAnalysis:
             logger.error(f"Failed to download NLTK packages: {str(e)}", exc_info=True)
             raise
 
+    @function_debug_decorator
     def _initialize_tokenizer(self):
         """Initialize the sentence tokenizer"""
         try:
@@ -77,6 +90,7 @@ class OpenEndedAnalysis:
             logger.error(f"Failed to initialize sentence tokenizer: {str(e)}")
             raise
 
+    @function_debug_decorator
     def _custom_sentence_split(self, text):
         """Fallback method for sentence splitting"""
         # Simple sentence splitting based on common punctuation
@@ -95,6 +109,7 @@ class OpenEndedAnalysis:
             
         return sentences
 
+    @function_debug_decorator
     def quantify_responses(self, responses, coding_scheme):
         """
         Quantify open-ended responses using a predefined coding scheme
@@ -136,6 +151,7 @@ class OpenEndedAnalysis:
             logger.error(f"Error in quantifying responses: {str(e)}", exc_info=True)
             raise
 
+    @function_debug_decorator
     def quantify_verification_steps(self, responses):
         """
         Quantify verification steps in responses by counting sentences
@@ -175,6 +191,7 @@ class OpenEndedAnalysis:
             logger.error(f"Error in quantifying verification steps: {str(e)}", exc_info=True)
             raise
 
+    @function_debug_decorator
     def analyze_themes(self, responses, min_freq=2):
         """
         Analyze common themes in responses using word frequency
@@ -214,6 +231,7 @@ class OpenEndedAnalysis:
             logger.error(f"Error in theme analysis: {str(e)}", exc_info=True)
             raise
 
+    @function_debug_decorator
     def load_csv_data(self, file_path=None):
         """
         Load patient response data from CSV
@@ -225,32 +243,34 @@ class OpenEndedAnalysis:
             bool: True if successful, False otherwise
         """
         try:
-            if file_path is None:
-                file_path = filedialog.askopenfilename(
-                    title="Select Patient Response CSV File",
-                    filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-                )
+            with DebugContext("CSV loading", logger):
+                if file_path is None:
+                    file_path = filedialog.askopenfilename(
+                        title="Select Patient Response CSV File",
+                        filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+                    )
+                    
+                if not file_path:  # User cancelled
+                    return False
+                    
+                logger.info(f"Loading data from: {file_path}")
+                self.data = pd.read_csv(file_path)
                 
-            if not file_path:  # User cancelled
-                return False
+                # Get column names for responses
+                self.select_response_columns()
                 
-            logger.info(f"Loading data from: {file_path}")
-            self.data = pd.read_csv(file_path)
-            
-            # Get column names for responses
-            self.select_response_columns()
-            
-            if self.response_columns is None:
-                logger.error("No response columns selected")
-                return False
+                if self.response_columns is None:
+                    logger.error("No response columns selected")
+                    return False
+                    
+                logger.info(f"Data loaded successfully. Shape: {self.data.shape}")
+                return True
                 
-            logger.info(f"Data loaded successfully. Shape: {self.data.shape}")
-            return True
-            
         except Exception as e:
-            logger.error(f"Error loading CSV data: {str(e)}", exc_info=True)
+            log_error_details(logger, e, "CSV loading")
             return False
 
+    @function_debug_decorator
     def select_response_columns(self):
         """Open dialog for selecting response columns"""
         if self.data is None:
@@ -283,6 +303,7 @@ class OpenEndedAnalysis:
         tk.Button(frame, text="Submit", command=on_submit).pack(pady=20)
         root.mainloop()
 
+    @function_debug_decorator
     def analyze_patient_responses(self):
         """Analyze loaded patient responses"""
         if self.data is None or self.response_columns is None:
@@ -290,51 +311,52 @@ class OpenEndedAnalysis:
             return None
 
         try:
-            results = {
-                'definition_analysis': {},
-                'verification_analysis': {}
-            }
+            with DebugContext("patient response analysis", logger):
+                results = {
+                    'definition_analysis': {},
+                    'verification_analysis': {}
+                }
 
-            # Analyze fake news definitions
-            definitions = self.data[self.response_columns['definition']].dropna()
-            
-            # Code the definitions
-            coding_scheme = {
-                'misinformation': ['false', 'fake', 'lie', 'misinformation'],
-                'intentionally deceptive': ['intentionally', 'deliberate', 'purposely'],
-                'platform': ['social media', 'internet', 'online'],
-                'purpose': ['mislead', 'deceive', 'chaos', 'confusion']
-            }
-            
-            results['definition_analysis']['coding'] = self.quantify_responses(
-                definitions.tolist(), 
-                coding_scheme
-            )
-            
-            # Analyze themes in definitions
-            results['definition_analysis']['themes'] = self.analyze_themes(
-                definitions.tolist()
-            )
+                # Analyze fake news definitions
+                definitions = self.data[self.response_columns['definition']].dropna()
+                
+                # Code the definitions
+                coding_scheme = {
+                    'misinformation': ['false', 'fake', 'lie', 'misinformation'],
+                    'intentionally deceptive': ['intentionally', 'deliberate', 'purposely'],
+                    'platform': ['social media', 'internet', 'online'],
+                    'purpose': ['mislead', 'deceive', 'chaos', 'confusion']
+                }
+                
+                results['definition_analysis']['coding'] = self.quantify_responses(
+                    definitions.tolist(), 
+                    coding_scheme
+                )
+                
+                # Analyze themes in definitions
+                results['definition_analysis']['themes'] = self.analyze_themes(
+                    definitions.tolist()
+                )
 
-            # Analyze verification steps
-            verifications = self.data[self.response_columns['verification']].dropna()
-            results['verification_analysis']['steps'] = self.quantify_verification_steps(
-                verifications.tolist()
-            )
-            
-            # Calculate summary statistics
-            results['verification_analysis']['summary'] = {
-                'mean_steps': np.mean(results['verification_analysis']['steps']),
-                'median_steps': np.median(results['verification_analysis']['steps']),
-                'max_steps': max(results['verification_analysis']['steps']),
-                'min_steps': min(results['verification_analysis']['steps'])
-            }
+                # Analyze verification steps
+                verifications = self.data[self.response_columns['verification']].dropna()
+                results['verification_analysis']['steps'] = self.quantify_verification_steps(
+                    verifications.tolist()
+                )
+                
+                # Calculate summary statistics
+                results['verification_analysis']['summary'] = {
+                    'mean_steps': np.mean(results['verification_analysis']['steps']),
+                    'median_steps': np.median(results['verification_analysis']['steps']),
+                    'max_steps': max(results['verification_analysis']['steps']),
+                    'min_steps': min(results['verification_analysis']['steps'])
+                }
 
-            logger.info("Patient response analysis completed successfully")
-            return results
+                logger.info("Patient response analysis completed successfully")
+                return results
 
         except Exception as e:
-            logger.error(f"Error analyzing patient responses: {str(e)}", exc_info=True)
+            log_error_details(logger, e, "patient response analysis")
             return None
 
 # Example usage
