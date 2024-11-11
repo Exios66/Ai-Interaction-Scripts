@@ -21,7 +21,7 @@ import os
 from datetime import datetime
 import sys
 import traceback
-from scripts.utils.logging_config import setup_logging
+from ..utils.logging_config import setup_logging
 import warnings
 
 # Configure warnings to be captured by logging
