@@ -9,6 +9,8 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import sys
 import base64
+import matplotlib
+matplotlib.use('Agg')  # Set non-interactive backend
 
 # Update the path to point to the project root
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
