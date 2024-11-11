@@ -4,18 +4,19 @@ from flask_socketio import SocketIO, emit
 import os
 import json
 import logging
+import pandas as pd
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import sys
 import base64
 
 # Update the path to point to the project root
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from scripts.polyPsych.open_end import OpenEndedAnalysis
 from scripts.polyPsych.clustering import DataAnalysisApp
 from scripts.polyPsych.cronbach import cronbach_alpha, CronbachResults
-from scripts.polyPsych.coin_flip import flip_coin, alter_fact, DEFAULT_FACTS
+from python.scripts.polyPsych.coin_flip import flip_coin, alter_fact, DEFAULT_FACTS
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})

@@ -129,6 +129,11 @@
             background-color: #2980b9;
         }
 
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
         .results-panel {
             margin-top: 1rem;
             padding: 1rem;
@@ -158,13 +163,28 @@
             height: auto;
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
         }
 
         .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
             padding: 1rem;
-            margin: 1rem 0;
             border-radius: 4px;
-            display: none;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         .notification.success {
@@ -181,18 +201,25 @@
             display: none;
             text-align: center;
             padding: 1rem;
+            position: relative;
         }
 
         .loading::after {
-            content: "Loading...";
-            animation: dots 1.5s infinite;
+            content: "";
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            left: 50%;
+            margin-left: -20px;
         }
 
-        @keyframes dots {
-            0%, 20% { content: "Loading.  "; }
-            40% { content: "Loading.. "; }
-            60% { content: "Loading..."; }
-            80%, 100% { content: "Loading.  "; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         #exportOptions {
@@ -203,7 +230,69 @@
         }
 
         .export-format {
+            display: inline-block;
             margin-right: 1rem;
+        }
+
+        .export-format input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        #gameInterface {
+            text-align: center;
+        }
+
+        #gameContent {
+            margin: 2rem 0;
+        }
+
+        #currentFact {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #gameStats {
+            display: flex;
+            justify-content: space-around;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #fff;
+            border-radius: 4px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--success-color);
+            transition: width 0.3s ease-in-out;
+        }
+
+        @media (max-width: 768px) {
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            .module-section {
+                padding: 1rem;
+            }
         }
     </style>
 </head>
@@ -230,10 +319,20 @@
             </div>
             <div id="open-ended-content" class="module-content">
                 <div class="form-group">
-                    <label>Upload Response Data:</label>
+                    <label>Upload Response Data (CSV):</label>
                     <input type="file" id="openEndedFile" accept=".csv">
+                    <small>File should contain columns: response_text, category (optional)</small>
                 </div>
-                <button onclick="runOpenEndedAnalysis()">Analyze Responses</button>
+                <div class="form-group">
+                    <label>Analysis Type:</label>
+                    <select id="analysisType">
+                        <option value="sentiment">Sentiment Analysis</option>
+                        <option value="topic">Topic Modeling</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+                <button onclick="runOpenEndedAnalysis()" id="openEndedAnalyzeBtn">Analyze Responses</button>
+                <div class="loading" id="openEndedLoading"></div>
                 <div id="openEndedResults" class="results-panel"></div>
                 <div id="openEndedViz" class="visualization-panel"></div>
                 <div id="openEndedLog" class="log-panel"></div>
@@ -248,14 +347,24 @@
             </div>
             <div id="clustering-content" class="module-content">
                 <div class="form-group">
-                    <label>Upload Data for Clustering:</label>
+                    <label>Upload Data for Clustering (CSV):</label>
                     <input type="file" id="clusteringFile" accept=".csv">
+                    <small>File should contain numerical features for clustering</small>
                 </div>
                 <div class="form-group">
                     <label>Number of Clusters:</label>
-                    <input type="number" id="numClusters" min="2" value="5">
+                    <input type="number" id="numClusters" min="2" max="10" value="5">
                 </div>
-                <button onclick="runClusteringAnalysis()">Run Clustering</button>
+                <div class="form-group">
+                    <label>Clustering Algorithm:</label>
+                    <select id="clusteringAlgorithm">
+                        <option value="kmeans">K-Means</option>
+                        <option value="hierarchical">Hierarchical</option>
+                        <option value="dbscan">DBSCAN</option>
+                    </select>
+                </div>
+                <button onclick="runClusteringAnalysis()" id="clusteringAnalyzeBtn">Run Clustering</button>
+                <div class="loading" id="clusteringLoading"></div>
                 <div id="clusteringResults" class="results-panel"></div>
                 <div id="clusteringViz" class="visualization-panel"></div>
                 <div id="clusteringLog" class="log-panel"></div>
@@ -270,8 +379,9 @@
             </div>
             <div id="cronbach-content" class="module-content">
                 <div class="form-group">
-                    <label>Upload Scale Data:</label>
+                    <label>Upload Scale Data (CSV):</label>
                     <input type="file" id="cronbachFile" accept=".csv">
+                    <small>File should contain Likert scale responses in columns</small>
                 </div>
                 <div class="form-group">
                     <label>Confidence Level:</label>
@@ -280,12 +390,13 @@
                 <div class="form-group">
                     <label>Handle Missing Data:</label>
                     <select id="handleMissing">
-                        <option value="pairwise">Pairwise</option>
-                        <option value="listwise">Listwise</option>
-                        <option value="impute">Impute</option>
+                        <option value="pairwise">Pairwise Deletion</option>
+                        <option value="listwise">Listwise Deletion</option>
+                        <option value="impute">Mean Imputation</option>
                     </select>
                 </div>
-                <button onclick="runCronbachAnalysis()">Calculate Alpha</button>
+                <button onclick="runCronbachAnalysis()" id="cronbachAnalyzeBtn">Calculate Alpha</button>
+                <div class="loading" id="cronbachLoading"></div>
                 <div id="cronbachResults" class="results-panel"></div>
                 <div id="cronbachLog" class="log-panel"></div>
             </div>
@@ -299,11 +410,26 @@
             </div>
             <div id="coin-flip-content" class="module-content">
                 <div class="form-group">
-                    <label>Upload Custom Facts (Optional):</label>
+                    <label>Upload Custom Facts (CSV, Optional):</label>
                     <input type="file" id="factsFile" accept=".csv">
+                    <small>File should contain columns: statement, is_true</small>
                 </div>
-                <button onclick="startFactCheckingGame()">Start Game</button>
-                <div id="gameInterface" class="results-panel"></div>
+                <div class="form-group">
+                    <label>Game Mode:</label>
+                    <select id="gameMode">
+                        <option value="standard">Standard</option>
+                        <option value="timed">Timed</option>
+                        <option value="challenge">Challenge</option>
+                    </select>
+                </div>
+                <button onclick="startFactCheckingGame()" id="startGameBtn">Start Game</button>
+                <div id="gameInterface" class="results-panel">
+                    <div id="gameContent"></div>
+                    <div id="gameStats"></div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" id="gameProgress"></div>
+                    </div>
+                </div>
                 <div id="gameLog" class="log-panel"></div>
             </div>
         </section>
@@ -323,11 +449,17 @@
                 <input type="checkbox" id="exportVisualizations" checked>
                 <label for="exportVisualizations">Visualizations</label>
             </div>
-            <button onclick="exportResults()">Export All Results</button>
+            <button onclick="exportResults()" id="exportBtn">Export All Results</button>
+            <div class="loading" id="exportLoading"></div>
         </section>
     </div>
 
     <script>
+        // Constants
+        const API_BASE_URL = 'https://yourusername.github.io/api';
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const SUPPORTED_MIME_TYPES = ['text/csv', 'application/json'];
+
         // Utility Functions
         function toggleModule(moduleId) {
             const content = document.getElementById(moduleId);
@@ -339,55 +471,92 @@
             notification.className = `notification ${type}`;
             notification.textContent = message;
             document.body.appendChild(notification);
-            notification.style.display = 'block';
-            setTimeout(() => notification.remove(), 3000);
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         }
 
-        function updateLog(logElement, message) {
+        function updateLog(logElement, message, type = 'info') {
             const timestamp = new Date().toISOString();
-            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
             logElement.scrollTop = logElement.scrollHeight;
         }
 
+        function validateFile(file) {
+            if (!file) return false;
+            if (file.size > MAX_FILE_SIZE) {
+                showNotification('File size exceeds 10MB limit', 'error');
+                return false;
+            }
+            if (!SUPPORTED_MIME_TYPES.includes(file.type)) {
+                showNotification('Unsupported file type', 'error');
+                return false;
+            }
+            return true;
+        }
+
         // API Communication Functions
-        async function makeRequest(endpoint, data) {
+        async function makeRequest(endpoint, data, method = 'POST') {
+            const loadingId = `${endpoint.split('/')[0]}Loading`;
+            const loadingElement = document.getElementById(loadingId);
+            if (loadingElement) loadingElement.style.display = 'block';
+
             try {
-                const response = await fetch(`/api/${endpoint}`, {
-                    method: 'POST',
+                const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+                    method,
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': data instanceof FormData ? undefined : 'application/json',
                     },
-                    body: JSON.stringify(data)
+                    body: data instanceof FormData ? data : JSON.stringify(data),
+                    credentials: 'include'
                 });
-                return await response.json();
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                return result;
             } catch (error) {
-                showNotification(error.message, 'error');
+                console.error('API request failed:', error);
                 throw error;
+            } finally {
+                if (loadingElement) loadingElement.style.display = 'none';
             }
         }
 
         // Module-specific Functions
         async function runOpenEndedAnalysis() {
             const fileInput = document.getElementById('openEndedFile');
+            const analysisType = document.getElementById('analysisType').value;
             const resultsPanel = document.getElementById('openEndedResults');
             const logPanel = document.getElementById('openEndedLog');
+            const analyzeBtn = document.getElementById('openEndedAnalyzeBtn');
 
-            if (!fileInput.files[0]) {
-                showNotification('Please select a file', 'error');
-                return;
-            }
+            if (!validateFile(fileInput.files[0])) return;
 
+            analyzeBtn.disabled = true;
             try {
                 updateLog(logPanel, 'Starting open-ended analysis...');
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
+                formData.append('analysisType', analysisType);
 
                 const response = await makeRequest('open-ended/analyze', formData);
                 
                 resultsPanel.style.display = 'block';
                 resultsPanel.innerHTML = `
                     <h3>Analysis Results</h3>
-                    <pre>${JSON.stringify(response.results, null, 2)}</pre>
+                    <div class="results-summary">
+                        ${response.results.summary}
+                    </div>
+                    <div class="results-details">
+                        <pre>${JSON.stringify(response.results.details, null, 2)}</pre>
+                    </div>
                 `;
 
                 if (response.visualizations) {
@@ -397,37 +566,46 @@
                     ).join('');
                 }
 
-                updateLog(logPanel, 'Analysis completed successfully');
+                updateLog(logPanel, 'Analysis completed successfully', 'success');
                 showNotification('Analysis completed', 'success');
             } catch (error) {
-                updateLog(logPanel, `Error: ${error.message}`);
+                updateLog(logPanel, `Error: ${error.message}`, 'error');
                 showNotification('Analysis failed', 'error');
+            } finally {
+                analyzeBtn.disabled = false;
             }
         }
 
         async function runClusteringAnalysis() {
             const fileInput = document.getElementById('clusteringFile');
             const numClusters = document.getElementById('numClusters').value;
+            const algorithm = document.getElementById('clusteringAlgorithm').value;
             const resultsPanel = document.getElementById('clusteringResults');
             const logPanel = document.getElementById('clusteringLog');
+            const analyzeBtn = document.getElementById('clusteringAnalyzeBtn');
 
-            if (!fileInput.files[0]) {
-                showNotification('Please select a file', 'error');
-                return;
-            }
+            if (!validateFile(fileInput.files[0])) return;
 
+            analyzeBtn.disabled = true;
             try {
                 updateLog(logPanel, 'Starting clustering analysis...');
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
                 formData.append('numClusters', numClusters);
+                formData.append('algorithm', algorithm);
 
                 const response = await makeRequest('clustering/analyze', formData);
                 
                 resultsPanel.style.display = 'block';
                 resultsPanel.innerHTML = `
                     <h3>Clustering Results</h3>
-                    <pre>${JSON.stringify(response.results, null, 2)}</pre>
+                    <div class="results-summary">
+                        <p>Number of clusters: ${response.results.numClusters}</p>
+                        <p>Silhouette score: ${response.results.silhouetteScore.toFixed(3)}</p>
+                    </div>
+                    <div class="results-details">
+                        <pre>${JSON.stringify(response.results.clusterDetails, null, 2)}</pre>
+                    </div>
                 `;
 
                 if (response.visualizations) {
@@ -437,11 +615,13 @@
                     ).join('');
                 }
 
-                updateLog(logPanel, 'Clustering completed successfully');
+                updateLog(logPanel, 'Clustering completed successfully', 'success');
                 showNotification('Clustering completed', 'success');
             } catch (error) {
-                updateLog(logPanel, `Error: ${error.message}`);
+                updateLog(logPanel, `Error: ${error.message}`, 'error');
                 showNotification('Clustering failed', 'error');
+            } finally {
+                analyzeBtn.disabled = false;
             }
         }
 
@@ -451,12 +631,11 @@
             const handleMissing = document.getElementById('handleMissing').value;
             const resultsPanel = document.getElementById('cronbachResults');
             const logPanel = document.getElementById('cronbachLog');
+            const analyzeBtn = document.getElementById('cronbachAnalyzeBtn');
 
-            if (!fileInput.files[0]) {
-                showNotification('Please select a file', 'error');
-                return;
-            }
+            if (!validateFile(fileInput.files[0])) return;
 
+            analyzeBtn.disabled = true;
             try {
                 updateLog(logPanel, 'Starting Cronbach\'s alpha analysis...');
                 const formData = new FormData();
@@ -469,78 +648,158 @@
                 resultsPanel.style.display = 'block';
                 resultsPanel.innerHTML = `
                     <h3>Cronbach's Alpha Results</h3>
-                    <pre>${JSON.stringify(response.results, null, 2)}</pre>
+                    <div class="results-summary">
+                        <p>Alpha coefficient: ${response.results.alpha.toFixed(3)}</p>
+                        <p>Confidence interval: [${response.results.ci[0].toFixed(3)}, ${response.results.ci[1].toFixed(3)}]</p>
+                        <p>Sample size: ${response.results.sampleSize}</p>
+                    </div>
+                    <div class="results-details">
+                        <h4>Item Statistics</h4>
+                        <pre>${JSON.stringify(response.results.itemStats, null, 2)}</pre>
+                    </div>
                 `;
 
-                updateLog(logPanel, 'Analysis completed successfully');
+                updateLog(logPanel, 'Analysis completed successfully', 'success');
                 showNotification('Analysis completed', 'success');
             } catch (error) {
-                updateLog(logPanel, `Error: ${error.message}`);
+                updateLog(logPanel, `Error: ${error.message}`, 'error');
                 showNotification('Analysis failed', 'error');
+            } finally {
+                analyzeBtn.disabled = false;
             }
         }
 
+        let gameState = {
+            score: 0,
+            questionsAnswered: 0,
+            totalQuestions: 10,
+            currentFact: null,
+            gameMode: 'standard',
+            timeRemaining: null
+        };
+
         async function startFactCheckingGame() {
             const fileInput = document.getElementById('factsFile');
+            const gameMode = document.getElementById('gameMode').value;
             const gameInterface = document.getElementById('gameInterface');
             const logPanel = document.getElementById('gameLog');
+            const startBtn = document.getElementById('startGameBtn');
 
+            if (fileInput.files[0] && !validateFile(fileInput.files[0])) return;
+
+            startBtn.disabled = true;
             try {
                 updateLog(logPanel, 'Starting fact checking game...');
                 const formData = new FormData();
                 if (fileInput.files[0]) {
                     formData.append('customFacts', fileInput.files[0]);
                 }
+                formData.append('gameMode', gameMode);
 
                 const response = await makeRequest('game/start', formData);
                 
-                gameInterface.style.display = 'block';
-                gameInterface.innerHTML = `
-                    <h3>Fact Checking Game</h3>
-                    <div id="gameContent">
-                        <p id="currentFact">${response.currentFact}</p>
-                        <button onclick="submitAnswer(true)">True</button>
-                        <button onclick="submitAnswer(false)">False</button>
-                    </div>
-                    <div id="gameStats">
-                        <p>Score: <span id="score">0</span></p>
-                        <p>Questions Remaining: <span id="remaining">${response.remaining}</span></p>
-                    </div>
-                `;
+                gameState = {
+                    score: 0,
+                    questionsAnswered: 0,
+                    totalQuestions: response.totalQuestions,
+                    currentFact: response.currentFact,
+                    gameMode,
+                    timeRemaining: gameMode === 'timed' ? 60 : null
+                };
 
-                updateLog(logPanel, 'Game started successfully');
+                gameInterface.style.display = 'block';
+                updateGameInterface();
+
+                if (gameMode === 'timed') {
+                    startTimer();
+                }
+
+                updateLog(logPanel, 'Game started successfully', 'success');
             } catch (error) {
-                updateLog(logPanel, `Error: ${error.message}`);
+                updateLog(logPanel, `Error: ${error.message}`, 'error');
                 showNotification('Failed to start game', 'error');
+            } finally {
+                startBtn.disabled = false;
             }
+        }
+
+        function updateGameInterface() {
+            const gameContent = document.getElementById('gameContent');
+            const gameStats = document.getElementById('gameStats');
+            const gameProgress = document.getElementById('gameProgress');
+
+            gameContent.innerHTML = `
+                <p id="currentFact">${gameState.currentFact}</p>
+                <button onclick="submitAnswer(true)" ${gameState.gameOver ? 'disabled' : ''}>True</button>
+                <button onclick="submitAnswer(false)" ${gameState.gameOver ? 'disabled' : ''}>False</button>
+            `;
+
+            gameStats.innerHTML = `
+                <p>Score: ${gameState.score}</p>
+                <p>Progress: ${gameState.questionsAnswered}/${gameState.totalQuestions}</p>
+                ${gameState.timeRemaining !== null ? `<p>Time: ${gameState.timeRemaining}s</p>` : ''}
+            `;
+
+            const progressPercentage = (gameState.questionsAnswered / gameState.totalQuestions) * 100;
+            gameProgress.style.width = `${progressPercentage}%`;
+        }
+
+        function startTimer() {
+            const timer = setInterval(() => {
+                gameState.timeRemaining--;
+                updateGameInterface();
+
+                if (gameState.timeRemaining <= 0) {
+                    clearInterval(timer);
+                    endGame();
+                }
+            }, 1000);
         }
 
         async function submitAnswer(answer) {
             try {
-                const response = await makeRequest('game/answer', { answer });
+                const response = await makeRequest('game/answer', { 
+                    answer,
+                    gameMode: gameState.gameMode
+                });
                 
-                if (response.gameOver) {
-                    showNotification('Game Over! Final Score: ' + response.finalScore, 'success');
-                    document.getElementById('gameContent').innerHTML = `
-                        <h3>Game Over!</h3>
-                        <p>Final Score: ${response.finalScore}</p>
-                        <button onclick="startFactCheckingGame()">Play Again</button>
-                    `;
+                gameState.score = response.currentScore;
+                gameState.questionsAnswered++;
+                gameState.currentFact = response.nextFact;
+
+                if (response.gameOver || gameState.questionsAnswered >= gameState.totalQuestions) {
+                    endGame();
                 } else {
-                    document.getElementById('currentFact').textContent = response.nextFact;
-                    document.getElementById('score').textContent = response.currentScore;
-                    document.getElementById('remaining').textContent = response.remaining;
+                    updateGameInterface();
                 }
             } catch (error) {
                 showNotification('Error submitting answer', 'error');
             }
         }
 
+        function endGame() {
+            const gameContent = document.getElementById('gameContent');
+            gameContent.innerHTML = `
+                <h3>Game Over!</h3>
+                <p>Final Score: ${gameState.score}</p>
+                <p>Accuracy: ${((gameState.score / gameState.questionsAnswered) * 100).toFixed(1)}%</p>
+                <button onclick="startFactCheckingGame()">Play Again</button>
+            `;
+            showNotification(`Game Over! Final Score: ${gameState.score}`, 'success');
+        }
+
         async function exportResults() {
             const exportCSV = document.getElementById('exportCSV').checked;
             const exportJSON = document.getElementById('exportJSON').checked;
             const exportViz = document.getElementById('exportVisualizations').checked;
+            const exportBtn = document.getElementById('exportBtn');
 
+            if (!exportCSV && !exportJSON && !exportViz) {
+                showNotification('Please select at least one export format', 'error');
+                return;
+            }
+
+            exportBtn.disabled = true;
             try {
                 const response = await makeRequest('export', {
                     formats: {
@@ -552,20 +811,42 @@
 
                 if (response.success) {
                     showNotification('Results exported successfully', 'success');
-                    // Trigger download of exported files
                     response.files.forEach(file => {
-                        window.open(file.url, '_blank');
+                        const link = document.createElement('a');
+                        link.href = file.url;
+                        link.download = file.filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
                     });
                 }
             } catch (error) {
                 showNotification('Export failed', 'error');
+            } finally {
+                exportBtn.disabled = false;
             }
         }
 
         // Initialize all log panels
-        document.querySelectorAll('.log-panel').forEach(panel => {
-            updateLog(panel, 'Panel initialized and ready');
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.log-panel').forEach(panel => {
+                updateLog(panel, 'Panel initialized and ready', 'info');
+            });
+
+            // Handle file input changes
+            document.querySelectorAll('input[type="file"]').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    validateFile(e.target.files[0]);
+                });
+            });
+
+            // Handle form submissions
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                });
+            });
         });
     </script>
 </body>
-</html> 
+</html>
