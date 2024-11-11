@@ -13,6 +13,8 @@ from datetime import datetime
 # At the top of the file, after imports
 import os
 from datetime import datetime
+import time
+from contextlib import contextmanager
 
 def setup_logging():
     """Configure logging with both file and console handlers"""
@@ -155,23 +157,33 @@ def calculate_confidence_interval(
     n_subjects: int, 
     confidence: float = 0.95
 ) -> Tuple[float, float]:
-    """Calculate confidence interval for Cronbach's alpha."""
+    """Calculate confidence interval for Cronbach's alpha with improved error handling."""
     logger.debug(f"Calculating confidence interval with alpha={alpha}, n_items={n_items}, n_subjects={n_subjects}")
     
-    # Using Fisher's transformation
-    if alpha <= -1 or alpha >= 1:
-        logger.error("Alpha must be between -1 and 1 for Fisher's transformation.")
-        raise ValueError("Alpha must be between -1 and 1 to calculate confidence interval.")
-    
-    z = np.arctanh(alpha)
-    se = np.sqrt(2 * (1 - alpha**2) / ((n_items - 1) * (n_subjects - 2)))
-    z_crit = stats.norm.ppf((1 + confidence) / 2)
-    
-    lower = np.tanh(z - z_crit * se)
-    upper = np.tanh(z + z_crit * se)
-    
-    logger.debug(f"Confidence interval calculated: ({lower:.3f}, {upper:.3f})")
-    return (lower, upper)
+    try:
+        # Handle edge cases
+        if alpha >= 1:
+            logger.warning(f"Alpha value {alpha} >= 1, capping at 0.9999")
+            alpha = 0.9999
+        elif alpha <= -1:
+            logger.warning(f"Alpha value {alpha} <= -1, capping at -0.9999")
+            alpha = -0.9999
+        
+        # Using Fisher's transformation
+        z = np.arctanh(alpha)
+        se = np.sqrt(2 * (1 - alpha**2) / ((n_items - 1) * (n_subjects - 2)))
+        z_crit = stats.norm.ppf((1 + confidence) / 2)
+        
+        lower = np.tanh(z - z_crit * se)
+        upper = np.tanh(z + z_crit * se)
+        
+        logger.debug(f"Confidence interval calculated: ({lower:.3f}, {upper:.3f})")
+        return (lower, upper)
+        
+    except Exception as e:
+        logger.error(f"Error calculating confidence interval: {str(e)}", exc_info=True)
+        # Return a default interval in case of error
+        return (-0.99, 0.99)
 
 def calculate_item_statistics(df: pd.DataFrame) -> pd.DataFrame:
     """Calculate comprehensive item-level statistics."""
@@ -194,87 +206,58 @@ def cronbach_alpha(
     confidence: float = 0.95,
     handle_missing: str = 'pairwise'
 ) -> CronbachResults:
-    """
-    Calculate Cronbach's alpha and comprehensive reliability statistics.
-    
-    Args:
-        df: pandas DataFrame with items as columns and participants as rows
-        confidence: Confidence level for interval estimation (default: 0.95)
-        handle_missing: Method for handling missing values ('pairwise', 'listwise', or 'impute')
-        
-    Returns:
-        CronbachResults object containing:
-        - alpha: Cronbach's alpha coefficient
-        - item_total_correlations: Correlation of each item with total score
-        - alpha_if_deleted: Alpha coefficient if each item is deleted
-        - confidence_interval: Confidence interval for alpha
-        - std_error: Standard error of alpha
-        - item_statistics: Detailed item-level statistics
-        - inter_item_correlations: Correlation matrix between items
-        - scale_statistics: Overall scale statistics
-    """
+    """Calculate Cronbach's alpha with improved error handling and validation."""
     logger.info(f"Starting Cronbach's alpha calculation with {df.shape[1]} items and {df.shape[0]} subjects")
+    
     try:
         validate_data(df)
         
-        logger.debug(f"Using confidence level: {confidence}")
-        logger.debug(f"Missing data handling method: {handle_missing}")
-        
         # Handle missing values
         if handle_missing == 'listwise':
-            logger.debug("Using listwise deletion for missing values")
             df = df.dropna()
         elif handle_missing == 'impute':
-            logger.debug("Imputing missing values with column means")
             df = df.fillna(df.mean())
-        elif handle_missing == 'pairwise':
-            logger.debug("Using pairwise deletion for missing values")
-            # Pairwise is default in pandas correlations
-        else:
-            logger.error(f"Unknown handle_missing option: {handle_missing}")
-            raise ValueError("handle_missing must be 'pairwise', 'listwise', or 'impute'")
             
         # Number of items and participants
         N = df.shape[1]
         n_subjects = df.shape[0]
-        logger.debug(f"Processing data with {N} items and {n_subjects} subjects")
         
-        if var_total := df.sum(axis=1).var(ddof=1) == 0:
-            logger.error("Total variance is zero, cannot compute Cronbach's alpha.")
-            raise ValueError("Total variance is zero, cannot compute Cronbach's alpha.")
-        
-        # Variance calculations
+        # Variance calculations with error checking
         item_variances = df.var(axis=0, ddof=1)
         total_scores = df.sum(axis=1)
         var_total = total_scores.var(ddof=1)
-        logger.debug(f"Total variance: {var_total:.3f}")
         
-        if var_total == 0:
-            logger.error("Total score variance is zero, cannot compute Cronbach's alpha.")
-            raise ValueError("Total score variance is zero, cannot compute Cronbach's alpha.")
-        
-        # Calculate alpha
+        if var_total <= 0:
+            logger.error("Total variance is zero or negative")
+            raise ValueError("Invalid total variance")
+            
+        # Calculate alpha with bounds checking
         alpha = (N / (N - 1)) * (1 - item_variances.sum() / var_total)
-        logger.info(f"Calculated Cronbach's alpha: {alpha:.3f}")
         
-        # Calculate confidence interval and standard error
+        # Cap alpha at reasonable bounds
+        if alpha > 1:
+            logger.warning(f"Alpha {alpha:.3f} > 1, capping at 0.9999")
+            alpha = 0.9999
+        elif alpha < -1:
+            logger.warning(f"Alpha {alpha:.3f} < -1, capping at -0.9999")
+            alpha = -0.9999
+            
+        # Calculate confidence interval
         ci = calculate_confidence_interval(alpha, N, n_subjects, confidence)
         std_error = (ci[1] - ci[0]) / (2 * stats.norm.ppf((1 + confidence) / 2))
-        logger.debug(f"Standard error: {std_error:.3f}")
         
-        # Item-total correlations
-        logger.debug("Calculating item-total correlations")
+        # Item-total correlations with error handling
         item_total_correlations = pd.Series(
-            {col: df[col].corr(total_scores - df[col]) for col in df.columns},
+            {col: df[col].corr(total_scores - df[col]) 
+             if not pd.isna(df[col].corr(total_scores - df[col])) else 0 
+             for col in df.columns},
             name="Item-Total Correlations"
         )
         
-        # Alpha if item deleted
-        logger.debug("Calculating alpha if item deleted")
+        # Alpha if item deleted with safety checks
         alpha_if_deleted = pd.Series(
             {col: cronbach_alpha(df.drop(columns=col), confidence, handle_missing).alpha 
-             if df.shape[1] > 2  # Only calculate if more than 2 columns remain
-             else float('nan')   # Otherwise return NaN
+             if df.shape[1] > 2 else np.nan 
              for col in df.columns},
             name="Alpha if Item Deleted"
         )
@@ -283,7 +266,6 @@ def cronbach_alpha(
         item_stats = calculate_item_statistics(df)
         
         # Calculate inter-item correlations
-        logger.debug("Calculating inter-item correlations")
         inter_item_corr = df.corr()
         
         # Calculate scale statistics
@@ -294,7 +276,6 @@ def cronbach_alpha(
             'n_items': N,
             'n_subjects': n_subjects
         }
-        logger.debug("Scale statistics calculated")
         
         results = CronbachResults(
             alpha=alpha,
@@ -353,21 +334,19 @@ def display_results(results: CronbachResults, detailed: bool = True) -> str:
 
 class CronbachAlphaApp:
     def __init__(self, root):
-        logger.info("Initializing Cronbach's Alpha Calculator GUI")
-        self.root = root
-        self.root.title("Cronbach's Alpha Calculator")
-        self.root.geometry("800x600")
-        
-        # Initialize variables
-        self.df = None
-        self.results = None
-        self.confidence_level = tk.DoubleVar(value=0.95)
-        self.handle_missing = tk.StringVar(value='pairwise')
-        
-        logger.debug("Creating GUI widgets")
-        self.create_widgets()
-        logger.info("GUI initialization complete")
-    
+        with CronbachAnalysisContext("GUI initialization", logger):
+            self.root = root
+            self.root.title("Cronbach's Alpha Calculator")
+            self.root.geometry("800x600")
+            
+            # Initialize variables
+            self.df = None
+            self.results = None
+            self.confidence_level = tk.DoubleVar(value=0.95)
+            self.handle_missing = tk.StringVar(value='pairwise')
+            
+            self.create_widgets()
+            
     def create_widgets(self):
         # Menu
         menubar = tk.Menu(self.root)
@@ -445,28 +424,29 @@ class CronbachAlphaApp:
             return
         
         try:
-            confidence = self.confidence_level.get()
-            if not (0 < confidence < 1):
-                raise ValueError("Confidence level must be between 0 and 1.")
-            
-            handle_missing = self.handle_missing.get()
-            logger.debug(f"Running analysis with confidence={confidence}, handle_missing={handle_missing}")
-            self.update_status("Running analysis...")
-            
-            self.results = cronbach_alpha(
-                self.df,
-                confidence=confidence,
-                handle_missing=handle_missing
-            )
-            result_str = display_results(self.results, detailed=True)
-            self.results_text.delete(1.0, tk.END)
-            self.results_text.insert(tk.END, result_str)
-            self.update_status("Analysis completed successfully.")
-            logger.info("Analysis completed and results displayed.")
+            with CronbachAnalysisContext("analysis", logger):
+                confidence = self.confidence_level.get()
+                if not (0 < confidence < 1):
+                    raise ValueError("Confidence level must be between 0 and 1.")
+                
+                handle_missing = self.handle_missing.get()
+                self.update_status("Running analysis...")
+                
+                self.results = cronbach_alpha(
+                    self.df,
+                    confidence=confidence,
+                    handle_missing=handle_missing
+                )
+                
+                result_str = display_results(self.results, detailed=True)
+                self.results_text.delete(1.0, tk.END)
+                self.results_text.insert(tk.END, result_str)
+                self.update_status("Analysis completed successfully.")
+                
         except Exception as e:
             logger.error(f"Analysis failed: {str(e)}", exc_info=True)
-            traceback_str = ''.join(traceback.format_tb(e.__traceback__))
-            messagebox.showerror("Analysis Error", f"An error occurred during analysis:\n{str(e)}\n\n{traceback_str}")
+            messagebox.showerror("Analysis Error", 
+                               f"An error occurred during analysis:\n{str(e)}")
             self.update_status("Analysis failed.")
     
     def export_results(self):
@@ -500,6 +480,20 @@ class CronbachAlphaApp:
     def update_status(self, message: str):
         self.status_var.set(message)
         logger.debug(f"Status updated: {message}")
+
+# Add a new debug context manager
+@contextmanager
+def CronbachAnalysisContext(operation: str, logger: logging.Logger):
+    """Context manager for Cronbach's alpha analysis operations"""
+    start_time = time.time()
+    logger.info(f"Starting {operation}")
+    try:
+        yield
+        duration = time.time() - start_time
+        logger.info(f"Completed {operation} in {duration:.2f} seconds")
+    except Exception as e:
+        logger.error(f"Error in {operation}: {str(e)}", exc_info=True)
+        raise
 
 # Example usage with error handling
 def main():

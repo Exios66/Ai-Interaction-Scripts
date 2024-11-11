@@ -1,0 +1,11 @@
+ID,text,sentiment,topic
+1,"This article about climate change seems misleading because it contradicts scientific consensus",negative,environment
+2,"The political post appears accurate based on official government sources",positive,politics
+3,"That health advice looks fake since it promotes unproven treatments",negative,health
+4,"The technology news seems reliable with verifiable sources",positive,technology
+5,"This economic report appears misleading due to cherry-picked statistics",negative,economics
+6,"The sports story checks out with multiple reliable sources",positive,sports
+7,"That medical claim seems false based on current research",negative,health
+8,"The environmental report is well-supported by scientific data",positive,environment
+9,"This social media post appears to be spreading misinformation",negative,social
+10,"The scientific article is peer-reviewed and trustworthy",positive,science 

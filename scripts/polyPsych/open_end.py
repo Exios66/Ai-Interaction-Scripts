@@ -365,57 +365,106 @@ class OpenEndedAnalysis:
 
     @function_debug_decorator
     def export_results(self, results, export_dir='exports'):
-        """Export analysis results to various formats"""
+        """Export analysis results to various formats in a timestamped subfolder"""
         try:
-            # Create export directory if it doesn't exist
+            # Create main export directory if it doesn't exist
             if not os.path.exists(export_dir):
                 os.makedirs(export_dir)
             
+            # Create timestamped subfolder
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            export_subfolder = os.path.join(export_dir, timestamp)
+            os.makedirs(export_subfolder)
+            
+            logger.info(f"Created export subfolder: {export_subfolder}")
+            
+            # Export metadata
+            metadata = {
+                'export_timestamp': timestamp,
+                'analysis_type': 'Open Ended Response Analysis',
+                'num_responses': len(self.data) if self.data is not None else 0,
+                'export_contents': []
+            }
             
             # Export coded responses to CSV
             if 'definition_analysis' in results:
                 coded_df = results['definition_analysis']['coding']
-                csv_path = os.path.join(export_dir, f'coded_responses_{timestamp}.csv')
+                csv_path = os.path.join(export_subfolder, 'coded_responses.csv')
                 coded_df.to_csv(csv_path, index=False)
-                logger.info(f"Coded responses exported to: {csv_path}")
+                metadata['export_contents'].append('coded_responses.csv')
+                logger.info(f"Exported coded responses to: {csv_path}")
 
             # Export themes to JSON
             if 'definition_analysis' in results and 'themes' in results['definition_analysis']:
-                themes_path = os.path.join(export_dir, f'themes_{timestamp}.json')
+                themes_path = os.path.join(export_subfolder, 'themes.json')
                 with open(themes_path, 'w') as f:
                     json.dump(results['definition_analysis']['themes'], f, indent=4)
-                logger.info(f"Themes exported to: {themes_path}")
+                metadata['export_contents'].append('themes.json')
+                logger.info(f"Exported themes to: {themes_path}")
 
             # Export verification analysis to CSV
             if 'verification_analysis' in results:
                 verif_df = pd.DataFrame({
                     'steps': results['verification_analysis']['steps']
                 })
-                verif_path = os.path.join(export_dir, f'verification_analysis_{timestamp}.csv')
+                verif_path = os.path.join(export_subfolder, 'verification_analysis.csv')
                 verif_df.to_csv(verif_path, index=False)
-                logger.info(f"Verification analysis exported to: {verif_path}")
+                metadata['export_contents'].append('verification_analysis.csv')
+                logger.info(f"Exported verification analysis to: {verif_path}")
 
             # Export summary statistics
             if 'verification_analysis' in results and 'summary' in results['verification_analysis']:
-                stats_path = os.path.join(export_dir, f'summary_stats_{timestamp}.json')
+                stats_path = os.path.join(export_subfolder, 'summary_stats.json')
                 with open(stats_path, 'w') as f:
                     json.dump(results['verification_analysis']['summary'], f, indent=4)
-                logger.info(f"Summary statistics exported to: {stats_path}")
+                metadata['export_contents'].append('summary_stats.json')
+                logger.info(f"Exported summary statistics to: {stats_path}")
 
-            return True
+            # Export metadata
+            metadata_path = os.path.join(export_subfolder, 'export_metadata.json')
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=4)
+            logger.info(f"Exported metadata to: {metadata_path}")
+
+            # Create README file
+            readme_path = os.path.join(export_subfolder, 'README.txt')
+            with open(readme_path, 'w') as f:
+                f.write(f"Open Ended Response Analysis Export\n")
+                f.write(f"Generated: {timestamp}\n\n")
+                f.write("Contents:\n")
+                for file in metadata['export_contents']:
+                    f.write(f"- {file}\n")
+                f.write("\nFor questions or support, please contact the development team.")
+            
+            logger.info(f"Export completed successfully to: {export_subfolder}")
+            return True, export_subfolder
+            
         except Exception as e:
             logger.error(f"Error exporting results: {str(e)}", exc_info=True)
-            return False
+            return False, None
 
     @function_debug_decorator
     def create_visualizations(self, results, export_dir='exports'):
-        """Create and export data visualizations"""
+        """Create and export data visualizations to the same timestamped subfolder"""
         try:
+            # Use the most recent export subfolder if it exists
             if not os.path.exists(export_dir):
                 os.makedirs(export_dir)
+                
+            # Find most recent subfolder
+            subfolders = [f for f in os.listdir(export_dir) 
+                         if os.path.isdir(os.path.join(export_dir, f))]
+            if not subfolders:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                viz_subfolder = os.path.join(export_dir, timestamp)
+                os.makedirs(viz_subfolder)
+            else:
+                latest_subfolder = max(subfolders)
+                viz_subfolder = os.path.join(export_dir, latest_subfolder)
             
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            # Create visualizations subfolder
+            viz_folder = os.path.join(viz_subfolder, 'visualizations')
+            os.makedirs(viz_folder, exist_ok=True)
             
             # Theme frequency visualization
             if 'definition_analysis' in results and 'themes' in results['definition_analysis']:
@@ -425,7 +474,7 @@ class OpenEndedAnalysis:
                 plt.title('Theme Frequencies in Responses')
                 plt.xticks(rotation=45, ha='right')
                 plt.tight_layout()
-                theme_plot_path = os.path.join(export_dir, f'theme_frequencies_{timestamp}.png')
+                theme_plot_path = os.path.join(viz_folder, 'theme_frequencies.png')
                 plt.savefig(theme_plot_path)
                 plt.close()
                 logger.info(f"Theme frequency plot saved to: {theme_plot_path}")
@@ -438,7 +487,7 @@ class OpenEndedAnalysis:
                 plt.title('Distribution of Verification Steps')
                 plt.xlabel('Number of Steps')
                 plt.ylabel('Frequency')
-                steps_plot_path = os.path.join(export_dir, f'verification_steps_{timestamp}.png')
+                steps_plot_path = os.path.join(viz_folder, 'verification_steps.png')
                 plt.savefig(steps_plot_path)
                 plt.close()
                 logger.info(f"Verification steps plot saved to: {steps_plot_path}")
@@ -451,12 +500,27 @@ class OpenEndedAnalysis:
                 plt.title('Frequency of Coding Categories')
                 plt.xticks(rotation=45, ha='right')
                 plt.tight_layout()
-                coding_plot_path = os.path.join(export_dir, f'coding_frequencies_{timestamp}.png')
+                coding_plot_path = os.path.join(viz_folder, 'coding_frequencies.png')
                 plt.savefig(coding_plot_path)
                 plt.close()
                 logger.info(f"Coding frequencies plot saved to: {coding_plot_path}")
 
+            # Update metadata to include visualizations
+            metadata_path = os.path.join(viz_subfolder, 'export_metadata.json')
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                metadata['visualizations'] = [
+                    'visualizations/theme_frequencies.png',
+                    'visualizations/verification_steps.png',
+                    'visualizations/coding_frequencies.png'
+                ]
+                with open(metadata_path, 'w') as f:
+                    json.dump(metadata, f, indent=4)
+
+            logger.info(f"Visualizations created successfully in: {viz_folder}")
             return True
+            
         except Exception as e:
             logger.error(f"Error creating visualizations: {str(e)}", exc_info=True)
             return False
