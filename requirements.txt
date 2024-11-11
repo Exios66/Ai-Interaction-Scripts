@@ -2,16 +2,20 @@
 pandas>=1.3.0
 numpy>=1.21.0
 nltk>=3.6.2
-scikit-learn>=0.24.2
-scipy>=1.7.0
 matplotlib>=3.4.2
 seaborn>=0.11.1
 
 # Statistical Analysis
 statsmodels>=0.13.0
 
-# GUI
-tk>=0.1.0
-
-# Logging
+# Logging and Debugging
 python-json-logger>=2.0.0
+
+# Testing and Development
+pytest>=6.0.0
+black>=21.0.0
+flake8>=3.9.0
+
+# Project Structure
+setuptools>=50.0.0
+wheel>=0.37.0

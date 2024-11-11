@@ -8,25 +8,90 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import sys
 import traceback
+import os
+from datetime import datetime
+# At the top of the file, after imports
+import os
+from datetime import datetime
+
+def setup_logging():
+    """Configure logging with both file and console handlers"""
+    # Create logs directory if it doesn't exist
+    log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Create timestamp for log file
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file = os.path.join(log_dir, f'cronbach_{timestamp}.log')
+
+    # Set up logger
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+
+    # Clear any existing handlers
+    logger.handlers.clear()
+
+    # File handler with detailed formatting
+    f_handler = logging.FileHandler(log_file)
+    f_handler.setLevel(logging.DEBUG)
+    f_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - [%(levelname)s] - %(filename)s:%(lineno)d - %(message)s'
+    )
+    f_handler.setFormatter(f_formatter)
+
+    # Console handler with simpler formatting
+    c_handler = logging.StreamHandler(sys.stdout)
+    c_handler.setLevel(logging.INFO)
+    c_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    c_handler.setFormatter(c_formatter)
+
+    # Add handlers to logger
+    logger.addHandler(f_handler)
+    logger.addHandler(c_handler)
+
+    logger.info(f"Logging initialized. Log file: {log_file}")
+    return logger
 
 # Set up logging with more detailed configuration
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+def setup_logging():
+    """Configure logging with both file and console handlers"""
+    # Create logs directory if it doesn't exist
+    log_dir = os.path.join(os.path.dirname(__file__), 'logs')
+    os.makedirs(log_dir, exist_ok=True)
 
-# Create handlers
-c_handler = logging.StreamHandler(sys.stdout)
-f_handler = logging.FileHandler('cronbach.log')
-c_handler.setLevel(logging.DEBUG)
-f_handler.setLevel(logging.DEBUG)
+    # Create timestamp for log file
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_file = os.path.join(log_dir, f'cronbach_{timestamp}.log')
 
-# Create formatters and add to handlers
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-c_handler.setFormatter(formatter)
-f_handler.setFormatter(formatter)
+    # Set up logger
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
 
-# Add handlers to logger
-logger.addHandler(c_handler)
-logger.addHandler(f_handler)
+    # Clear any existing handlers
+    logger.handlers.clear()
+
+    # File handler with detailed formatting
+    f_handler = logging.FileHandler(log_file)
+    f_handler.setLevel(logging.DEBUG)
+    f_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - [%(levelname)s] - %(filename)s:%(lineno)d - %(message)s'
+    )
+    f_handler.setFormatter(f_formatter)
+
+    # Console handler with simpler formatting
+    c_handler = logging.StreamHandler(sys.stdout)
+    c_handler.setLevel(logging.INFO)
+    c_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    c_handler.setFormatter(c_formatter)
+
+    # Add handlers to logger
+    logger.addHandler(f_handler)
+    logger.addHandler(c_handler)
+
+    logger.info(f"Logging initialized. Log file: {log_file}")
+    return logger
+
+logger = setup_logging()
 
 @dataclass
 class CronbachResults:
@@ -148,9 +213,12 @@ def cronbach_alpha(
         - inter_item_correlations: Correlation matrix between items
         - scale_statistics: Overall scale statistics
     """
+    logger.info(f"Starting Cronbach's alpha calculation with {df.shape[1]} items and {df.shape[0]} subjects")
     try:
-        logger.info("Starting Cronbach's alpha calculation")
         validate_data(df)
+        
+        logger.debug(f"Using confidence level: {confidence}")
+        logger.debug(f"Missing data handling method: {handle_missing}")
         
         # Handle missing values
         if handle_missing == 'listwise':
@@ -204,7 +272,10 @@ def cronbach_alpha(
         # Alpha if item deleted
         logger.debug("Calculating alpha if item deleted")
         alpha_if_deleted = pd.Series(
-            {col: cronbach_alpha(df.drop(columns=col), confidence, handle_missing).alpha for col in df.columns},
+            {col: cronbach_alpha(df.drop(columns=col), confidence, handle_missing).alpha 
+             if df.shape[1] > 2  # Only calculate if more than 2 columns remain
+             else float('nan')   # Otherwise return NaN
+             for col in df.columns},
             name="Alpha if Item Deleted"
         )
         
@@ -236,11 +307,11 @@ def cronbach_alpha(
             scale_statistics=scale_stats
         )
         
-        logger.info("Cronbach's alpha calculation completed successfully")
+        logger.info(f"Calculation complete. Alpha: {alpha:.3f}")
         return results
         
     except Exception as e:
-        logger.error(f"Error calculating Cronbach's alpha: {str(e)}", exc_info=True)
+        logger.error("Failed to calculate Cronbach's alpha", exc_info=True)
         raise
 
 def display_results(results: CronbachResults, detailed: bool = True) -> str:
@@ -282,6 +353,7 @@ def display_results(results: CronbachResults, detailed: bool = True) -> str:
 
 class CronbachAlphaApp:
     def __init__(self, root):
+        logger.info("Initializing Cronbach's Alpha Calculator GUI")
         self.root = root
         self.root.title("Cronbach's Alpha Calculator")
         self.root.geometry("800x600")
@@ -292,7 +364,9 @@ class CronbachAlphaApp:
         self.confidence_level = tk.DoubleVar(value=0.95)
         self.handle_missing = tk.StringVar(value='pairwise')
         
+        logger.debug("Creating GUI widgets")
         self.create_widgets()
+        logger.info("GUI initialization complete")
     
     def create_widgets(self):
         # Menu
@@ -433,11 +507,21 @@ def main():
         logger.info("Starting Cronbach's Alpha GUI Application")
         root = tk.Tk()
         app = CronbachAlphaApp(root)
+        
+        # Set up exception handling for the GUI
+        def handle_exception(exc_type, exc_value, exc_traceback):
+            logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+            messagebox.showerror("Error", f"An unexpected error occurred:\n{exc_value}")
+        
+        # Install exception handler
+        sys.excepthook = handle_exception
+        
+        logger.info("Entering main event loop")
         root.mainloop()
-        logger.info("Cronbach's Alpha GUI Application closed")
+        logger.info("Application closed normally")
     except Exception as e:
-        logger.error(f"Application failed to start: {str(e)}", exc_info=True)
-        messagebox.showerror("Application Error", f"An unexpected error occurred:\n{str(e)}")
+        logger.critical("Fatal error in main loop", exc_info=True)
+        messagebox.showerror("Fatal Error", f"Application failed to start:\n{str(e)}")
         sys.exit(1)
 
 if __name__ == "__main__":
