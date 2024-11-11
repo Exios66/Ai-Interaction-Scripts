@@ -4,13 +4,17 @@ import logging
 import scipy.stats as stats
 from typing import Dict, Union, Optional, List, Tuple
 from dataclasses import dataclass
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+import sys
+import traceback
 
 # Set up logging with more detailed configuration
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Create handlers
-c_handler = logging.StreamHandler()
+c_handler = logging.StreamHandler(sys.stdout)
 f_handler = logging.FileHandler('cronbach.log')
 c_handler.setLevel(logging.DEBUG)
 f_handler.setLevel(logging.DEBUG)
@@ -90,6 +94,10 @@ def calculate_confidence_interval(
     logger.debug(f"Calculating confidence interval with alpha={alpha}, n_items={n_items}, n_subjects={n_subjects}")
     
     # Using Fisher's transformation
+    if alpha <= -1 or alpha >= 1:
+        logger.error("Alpha must be between -1 and 1 for Fisher's transformation.")
+        raise ValueError("Alpha must be between -1 and 1 to calculate confidence interval.")
+    
     z = np.arctanh(alpha)
     se = np.sqrt(2 * (1 - alpha**2) / ((n_items - 1) * (n_subjects - 2)))
     z_crit = stats.norm.ppf((1 + confidence) / 2)
@@ -151,17 +159,31 @@ def cronbach_alpha(
         elif handle_missing == 'impute':
             logger.debug("Imputing missing values with column means")
             df = df.fillna(df.mean())
+        elif handle_missing == 'pairwise':
+            logger.debug("Using pairwise deletion for missing values")
+            # Pairwise is default in pandas correlations
+        else:
+            logger.error(f"Unknown handle_missing option: {handle_missing}")
+            raise ValueError("handle_missing must be 'pairwise', 'listwise', or 'impute'")
             
         # Number of items and participants
         N = df.shape[1]
         n_subjects = df.shape[0]
         logger.debug(f"Processing data with {N} items and {n_subjects} subjects")
         
+        if var_total := df.sum(axis=1).var(ddof=1) == 0:
+            logger.error("Total variance is zero, cannot compute Cronbach's alpha.")
+            raise ValueError("Total variance is zero, cannot compute Cronbach's alpha.")
+        
         # Variance calculations
         item_variances = df.var(axis=0, ddof=1)
         total_scores = df.sum(axis=1)
         var_total = total_scores.var(ddof=1)
         logger.debug(f"Total variance: {var_total:.3f}")
+        
+        if var_total == 0:
+            logger.error("Total score variance is zero, cannot compute Cronbach's alpha.")
+            raise ValueError("Total score variance is zero, cannot compute Cronbach's alpha.")
         
         # Calculate alpha
         alpha = (N / (N - 1)) * (1 - item_variances.sum() / var_total)
@@ -182,7 +204,7 @@ def cronbach_alpha(
         # Alpha if item deleted
         logger.debug("Calculating alpha if item deleted")
         alpha_if_deleted = pd.Series(
-            {col: cronbach_alpha(df.drop(columns=col))['alpha'] for col in df.columns},
+            {col: cronbach_alpha(df.drop(columns=col), confidence, handle_missing).alpha for col in df.columns},
             name="Alpha if Item Deleted"
         )
         
@@ -221,62 +243,202 @@ def cronbach_alpha(
         logger.error(f"Error calculating Cronbach's alpha: {str(e)}", exc_info=True)
         raise
 
-def display_results(results: CronbachResults, detailed: bool = True) -> None:
-    """Display formatted results of the Cronbach's alpha analysis."""
-    logger.info("Displaying analysis results")
+def display_results(results: CronbachResults, detailed: bool = True) -> str:
+    """Generate formatted results of the Cronbach's alpha analysis."""
+    logger.info("Generating analysis results for display")
     
-    print("\nCRONBACH'S ALPHA ANALYSIS")
-    print("=" * 70)
+    output = []
+    output.append("\nCRONBACH'S ALPHA ANALYSIS")
+    output.append("=" * 70)
     
-    print(f"\nOverall Cronbach's Alpha: {results.alpha:.3f}")
-    print(f"95% Confidence Interval: ({results.confidence_interval[0]:.3f}, {results.confidence_interval[1]:.3f})")
-    print(f"Standard Error: {results.std_error:.3f}")
+    output.append(f"\nOverall Cronbach's Alpha: {results.alpha:.3f}")
+    output.append(f"{int(100*0.95)}% Confidence Interval: ({results.confidence_interval[0]:.3f}, {results.confidence_interval[1]:.3f})")
+    output.append(f"Standard Error: {results.std_error:.3f}")
     
-    print("\nScale Statistics:")
-    print("-" * 70)
+    output.append("\nScale Statistics:")
+    output.append("-" * 70)
     for key, value in results.scale_statistics.items():
-        print(f"{key.replace('_', ' ').title()}: {value:.3f}")
+        output.append(f"{key.replace('_', ' ').title()}: {value:.3f}")
     
-    print("\nItem Analysis:")
-    print("-" * 70)
+    output.append("\nItem Analysis:")
+    output.append("-" * 70)
     analysis = pd.DataFrame({
         'Item-Total Correlation': results.item_total_correlations,
         'Alpha if Item Deleted': results.alpha_if_deleted
     })
-    print(analysis.round(3))
+    output.append(analysis.round(3).to_string())
     
     if detailed:
-        print("\nDetailed Item Statistics:")
-        print("-" * 70)
-        print(results.item_statistics.round(3))
+        output.append("\nDetailed Item Statistics:")
+        output.append("-" * 70)
+        output.append(results.item_statistics.round(3).to_string())
         
-        print("\nInter-Item Correlations:")
-        print("-" * 70)
-        print(results.inter_item_correlations.round(3))
+        output.append("\nInter-Item Correlations:")
+        output.append("-" * 70)
+        output.append(results.inter_item_correlations.round(3).to_string())
+        
+    logger.debug("Results generation completed")
+    return "\n".join(output)
+
+class CronbachAlphaApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Cronbach's Alpha Calculator")
+        self.root.geometry("800x600")
+        
+        # Initialize variables
+        self.df = None
+        self.results = None
+        self.confidence_level = tk.DoubleVar(value=0.95)
+        self.handle_missing = tk.StringVar(value='pairwise')
+        
+        self.create_widgets()
     
-    logger.debug("Results display completed")
+    def create_widgets(self):
+        # Menu
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Load CSV", command=self.load_csv)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.root.quit)
+        menubar.add_cascade(label="File", menu=file_menu)
+        
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="About", command=self.show_about)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        
+        # Frame for settings
+        settings_frame = ttk.LabelFrame(self.root, text="Settings")
+        settings_frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        # Confidence Level
+        ttk.Label(settings_frame, text="Confidence Level:").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+        confidence_entry = ttk.Entry(settings_frame, textvariable=self.confidence_level, width=10)
+        confidence_entry.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
+        
+        # Handle Missing Data
+        ttk.Label(settings_frame, text="Handle Missing Data:").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+        handle_options = ['pairwise', 'listwise', 'impute']
+        handle_menu = ttk.OptionMenu(settings_frame, self.handle_missing, self.handle_missing.get(), *handle_options)
+        handle_menu.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
+        
+        # Run Button
+        run_button = ttk.Button(settings_frame, text="Run Analysis", command=self.run_analysis)
+        run_button.grid(row=2, column=0, columnspan=2, pady=10)
+        
+        # Results Frame
+        results_frame = ttk.LabelFrame(self.root, text="Results")
+        results_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        self.results_text = tk.Text(results_frame, wrap=tk.NONE)
+        self.results_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        scrollbar_y = ttk.Scrollbar(results_frame, orient=tk.VERTICAL, command=self.results_text.yview)
+        scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
+        self.results_text.configure(yscrollcommand=scrollbar_y.set)
+        
+        # Export Button
+        export_button = ttk.Button(self.root, text="Export Results", command=self.export_results)
+        export_button.pack(pady=5)
+        
+        # Status Bar
+        self.status_var = tk.StringVar()
+        self.status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.update_status("Ready")
+    
+    def load_csv(self):
+        file_path = filedialog.askopenfilename(
+            title="Select CSV File",
+            filetypes=[("CSV Files", "*.csv"), ("All Files", "*.*")]
+        )
+        if file_path:
+            try:
+                self.df = pd.read_csv(file_path)
+                logger.debug(f"Loaded data from {file_path}")
+                self.update_status(f"Loaded data from {file_path}")
+                messagebox.showinfo("Success", f"Data loaded successfully from {file_path}")
+            except Exception as e:
+                logger.error(f"Failed to load CSV file: {str(e)}", exc_info=True)
+                messagebox.showerror("Error", f"Failed to load CSV file:\n{str(e)}")
+                self.update_status("Failed to load data")
+    
+    def run_analysis(self):
+        if self.df is None:
+            messagebox.showwarning("No Data", "Please load a CSV file first.")
+            return
+        
+        try:
+            confidence = self.confidence_level.get()
+            if not (0 < confidence < 1):
+                raise ValueError("Confidence level must be between 0 and 1.")
+            
+            handle_missing = self.handle_missing.get()
+            logger.debug(f"Running analysis with confidence={confidence}, handle_missing={handle_missing}")
+            self.update_status("Running analysis...")
+            
+            self.results = cronbach_alpha(
+                self.df,
+                confidence=confidence,
+                handle_missing=handle_missing
+            )
+            result_str = display_results(self.results, detailed=True)
+            self.results_text.delete(1.0, tk.END)
+            self.results_text.insert(tk.END, result_str)
+            self.update_status("Analysis completed successfully.")
+            logger.info("Analysis completed and results displayed.")
+        except Exception as e:
+            logger.error(f"Analysis failed: {str(e)}", exc_info=True)
+            traceback_str = ''.join(traceback.format_tb(e.__traceback__))
+            messagebox.showerror("Analysis Error", f"An error occurred during analysis:\n{str(e)}\n\n{traceback_str}")
+            self.update_status("Analysis failed.")
+    
+    def export_results(self):
+        if self.results is None:
+            messagebox.showwarning("No Results", "Run the analysis first to export results.")
+            return
+        
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")],
+            title="Save Results As"
+        )
+        if file_path:
+            try:
+                with open(file_path, 'w') as f:
+                    f.write(display_results(self.results, detailed=True))
+                logger.debug(f"Results exported to {file_path}")
+                self.update_status(f"Results exported to {file_path}")
+                messagebox.showinfo("Success", f"Results exported successfully to {file_path}")
+            except Exception as e:
+                logger.error(f"Failed to export results: {str(e)}", exc_info=True)
+                messagebox.showerror("Error", f"Failed to export results:\n{str(e)}")
+                self.update_status("Failed to export results.")
+    
+    def show_about(self):
+        messagebox.showinfo(
+            "About Cronbach's Alpha Calculator",
+            "Cronbach's Alpha Calculator\nVersion 1.0\nDeveloped with Tkinter"
+        )
+    
+    def update_status(self, message: str):
+        self.status_var.set(message)
+        logger.debug(f"Status updated: {message}")
 
 # Example usage with error handling
-if __name__ == "__main__":
+def main():
     try:
-        logger.info("Starting sample analysis")
-        
-        # Sample data
-        data = {
-            'Item1': [4, 3, 5, 2, 4, 5, 3, 2],
-            'Item2': [3, 4, 2, 5, 3, 4, 4, 3],
-            'Item3': [5, 4, 3, 4, 5, 3, 4, 4],
-            'Item4': [2, 3, 4, 3, 4, 4, 3, 5]
-        }
-        
-        df = pd.DataFrame(data)
-        logger.debug("Sample data created successfully")
-        
-        results = cronbach_alpha(df)
-        display_results(results)
-        
-        logger.info("Sample analysis completed successfully")
-        
+        logger.info("Starting Cronbach's Alpha GUI Application")
+        root = tk.Tk()
+        app = CronbachAlphaApp(root)
+        root.mainloop()
+        logger.info("Cronbach's Alpha GUI Application closed")
     except Exception as e:
-        logger.error(f"Program execution failed: {str(e)}", exc_info=True)
-        raise
+        logger.error(f"Application failed to start: {str(e)}", exc_info=True)
+        messagebox.showerror("Application Error", f"An unexpected error occurred:\n{str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
