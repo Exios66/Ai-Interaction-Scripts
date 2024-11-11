@@ -1,0 +1,131 @@
+2024-11-11 12:48:35,165 - clustering - INFO - Initializing NLTK components
+2024-11-11 12:48:35,440 - clustering - INFO - NLTK components initialized successfully
+2024-11-11 12:48:35,440 - clustering - INFO - Initializing stop words
+2024-11-11 12:48:35,441 - clustering - INFO - Stop words initialized successfully
+2024-11-11 12:48:35,441 - clustering - INFO - Initializing lemmatizer
+2024-11-11 12:48:35,441 - clustering - INFO - Lemmatizer initialized successfully
+2024-11-11 12:48:35,681 - clustering - INFO - Initializing DataAnalysisApp
+2024-11-11 12:48:36,048 - clustering - DEBUG - Initializing data structures
+2024-11-11 12:48:36,048 - clustering - DEBUG - Data structures initialized successfully
+2024-11-11 12:48:36,048 - clustering - DEBUG - Creating menu bar
+2024-11-11 12:48:36,057 - clustering - DEBUG - Menu bar created successfully
+2024-11-11 12:48:36,057 - clustering - DEBUG - Creating GUI widgets
+2024-11-11 12:48:36,057 - clustering - DEBUG - Setting up data management frame
+2024-11-11 12:48:36,067 - clustering - DEBUG - Data management frame setup completed
+2024-11-11 12:48:36,068 - clustering - DEBUG - Setting up analysis frame
+2024-11-11 12:48:36,068 - clustering - DEBUG - Analysis frame setup completed
+2024-11-11 12:48:36,068 - clustering - DEBUG - Setting up visualization frame
+2024-11-11 12:48:36,068 - clustering - ERROR - Error setting up visualization frame: 'DataAnalysisApp' object has no attribute 'export_plot'
+Traceback (most recent call last):
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 269, in setup_viz_frame
+    ttk.Button(controls_frame, text="Export Plot", command=self.export_plot).pack(side=tk.LEFT, padx=5, pady=5)
+                                                           ^^^^^^^^^^^^^^^^
+AttributeError: 'DataAnalysisApp' object has no attribute 'export_plot'
+2024-11-11 12:48:36,069 - clustering - ERROR - Error creating widgets: 'DataAnalysisApp' object has no attribute 'export_plot'
+Traceback (most recent call last):
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 208, in create_widgets
+    self.setup_viz_frame()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 269, in setup_viz_frame
+    ttk.Button(controls_frame, text="Export Plot", command=self.export_plot).pack(side=tk.LEFT, padx=5, pady=5)
+                                                           ^^^^^^^^^^^^^^^^
+AttributeError: 'DataAnalysisApp' object has no attribute 'export_plot'
+2024-11-11 12:48:36,069 - clustering - CRITICAL - Failed to initialize application: 'DataAnalysisApp' object has no attribute 'export_plot'
+Traceback (most recent call last):
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 104, in __init__
+    self.create_widgets()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 208, in create_widgets
+    self.setup_viz_frame()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 269, in setup_viz_frame
+    ttk.Button(controls_frame, text="Export Plot", command=self.export_plot).pack(side=tk.LEFT, padx=5, pady=5)
+                                                           ^^^^^^^^^^^^^^^^
+AttributeError: 'DataAnalysisApp' object has no attribute 'export_plot'
+2024-11-11 12:50:04,328 - clustering - INFO - Initializing NLTK components
+2024-11-11 12:50:04,547 - clustering - INFO - NLTK components initialized successfully
+2024-11-11 12:50:04,547 - clustering - INFO - Initializing stop words
+2024-11-11 12:50:04,548 - clustering - INFO - Stop words initialized successfully
+2024-11-11 12:50:04,548 - clustering - INFO - Initializing lemmatizer
+2024-11-11 12:50:04,548 - clustering - INFO - Lemmatizer initialized successfully
+2024-11-11 12:50:04,714 - clustering - INFO - Initializing DataAnalysisApp
+2024-11-11 12:50:05,073 - clustering - DEBUG - Initializing data structures
+2024-11-11 12:50:05,073 - clustering - DEBUG - Data structures initialized successfully
+2024-11-11 12:50:05,074 - clustering - DEBUG - Creating menu bar
+2024-11-11 12:50:05,081 - clustering - DEBUG - Menu bar created successfully
+2024-11-11 12:50:05,081 - clustering - DEBUG - Creating GUI widgets
+2024-11-11 12:50:05,081 - clustering - DEBUG - Setting up data management frame
+2024-11-11 12:50:05,087 - clustering - DEBUG - Data management frame setup completed
+2024-11-11 12:50:05,087 - clustering - DEBUG - Setting up analysis frame
+2024-11-11 12:50:05,087 - clustering - DEBUG - Analysis frame setup completed
+2024-11-11 12:50:05,087 - clustering - DEBUG - Setting up visualization frame
+2024-11-11 12:50:05,087 - clustering - DEBUG - Visualization frame setup completed
+2024-11-11 12:50:05,087 - clustering - DEBUG - Setting up results frame
+2024-11-11 12:50:05,087 - clustering - ERROR - Error setting up results frame: 'DataAnalysisApp' object has no attribute 'clear_results'
+Traceback (most recent call last):
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 290, in setup_results_frame
+    ttk.Button(controls_frame, text="Clear Results", command=self.clear_results).pack(side=tk.LEFT, padx=5, pady=5)
+                                                             ^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataAnalysisApp' object has no attribute 'clear_results'. Did you mean: 'export_results'?
+2024-11-11 12:50:05,088 - clustering - ERROR - Error creating widgets: 'DataAnalysisApp' object has no attribute 'clear_results'
+Traceback (most recent call last):
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 209, in create_widgets
+    self.setup_results_frame()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 290, in setup_results_frame
+    ttk.Button(controls_frame, text="Clear Results", command=self.clear_results).pack(side=tk.LEFT, padx=5, pady=5)
+                                                             ^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataAnalysisApp' object has no attribute 'clear_results'. Did you mean: 'export_results'?
+2024-11-11 12:50:05,089 - clustering - CRITICAL - Failed to initialize application: 'DataAnalysisApp' object has no attribute 'clear_results'
+Traceback (most recent call last):
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 104, in __init__
+    self.create_widgets()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 209, in create_widgets
+    self.setup_results_frame()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/luciusjmorningstar/Documents/GitHub/Ai-Interaction-Scripts/scripts/polyPsych/clustering.py", line 290, in setup_results_frame
+    ttk.Button(controls_frame, text="Clear Results", command=self.clear_results).pack(side=tk.LEFT, padx=5, pady=5)
+                                                             ^^^^^^^^^^^^^^^^^^
+AttributeError: 'DataAnalysisApp' object has no attribute 'clear_results'. Did you mean: 'export_results'?
+2024-11-11 12:50:45,452 - clustering - INFO - Initializing NLTK components
+2024-11-11 12:50:45,674 - clustering - INFO - NLTK components initialized successfully
+2024-11-11 12:50:45,674 - clustering - INFO - Initializing stop words
+2024-11-11 12:50:45,675 - clustering - INFO - Stop words initialized successfully
+2024-11-11 12:50:45,675 - clustering - INFO - Initializing lemmatizer
+2024-11-11 12:50:45,675 - clustering - INFO - Lemmatizer initialized successfully
+2024-11-11 12:50:45,834 - clustering - INFO - Initializing DataAnalysisApp
+2024-11-11 12:50:46,196 - clustering - DEBUG - Initializing data structures
+2024-11-11 12:50:46,196 - clustering - DEBUG - Data structures initialized successfully
+2024-11-11 12:50:46,196 - clustering - DEBUG - Creating menu bar
+2024-11-11 12:50:46,200 - clustering - DEBUG - Menu bar created successfully
+2024-11-11 12:50:46,200 - clustering - DEBUG - Creating GUI widgets
+2024-11-11 12:50:46,200 - clustering - DEBUG - Setting up data management frame
+2024-11-11 12:50:46,204 - clustering - DEBUG - Data management frame setup completed
+2024-11-11 12:50:46,204 - clustering - DEBUG - Setting up analysis frame
+2024-11-11 12:50:46,205 - clustering - DEBUG - Analysis frame setup completed
+2024-11-11 12:50:46,205 - clustering - DEBUG - Setting up visualization frame
+2024-11-11 12:50:46,205 - clustering - DEBUG - Visualization frame setup completed
+2024-11-11 12:50:46,205 - clustering - DEBUG - Setting up results frame
+2024-11-11 12:50:46,205 - clustering - DEBUG - Results frame setup completed
+2024-11-11 12:50:46,205 - clustering - DEBUG - GUI widgets created successfully
+2024-11-11 12:50:46,205 - clustering - DEBUG - Creating status bar
+2024-11-11 12:50:46,205 - clustering - DEBUG - Updating status bar: Ready
+2024-11-11 12:50:46,206 - clustering - DEBUG - Status bar created successfully
+2024-11-11 12:50:46,206 - clustering - INFO - Attempting to load configuration
+2024-11-11 12:50:46,206 - clustering - WARNING - No configuration file found, using defaults
+2024-11-11 12:50:46,206 - clustering - INFO - DataAnalysisApp initialization completed successfully
+2024-11-11 12:50:46,206 - clustering - INFO - Application started successfully
+2024-11-11 12:50:49,865 - clustering - INFO - Attempting to load quantitative data
+2024-11-11 12:50:57,349 - clustering - DEBUG - Clearing results
+2024-11-11 12:50:57,350 - clustering - DEBUG - Updating status bar: Results cleared
+2024-11-11 12:50:57,350 - clustering - INFO - Results cleared successfully
+2024-11-11 12:51:00,265 - clustering - INFO - Starting results visualization
+2024-11-11 12:51:00,266 - clustering - WARNING - Attempted visualization without clustering results
+2024-11-11 12:51:04,748 - clustering - INFO - Starting data preprocessing
+2024-11-11 12:51:04,748 - clustering - DEBUG - Updating status bar: Data preprocessing completed
+2024-11-11 12:51:04,749 - clustering - INFO - Data preprocessing completed successfully
+2024-11-11 12:51:07,201 - clustering - INFO - Opening clustering options dialog
+2024-11-11 12:51:07,202 - clustering - DEBUG - Clustering options dialog created successfully
+2024-11-11 12:51:08,315 - clustering - INFO - Starting clustering analysis using method: kmeans
+2024-11-11 12:51:08,316 - clustering - WARNING - Attempted clustering without preprocessed data

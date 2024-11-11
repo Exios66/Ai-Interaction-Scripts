@@ -1,6 +1,5 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from venv import logger
 import warnings
 import pandas as pd
 import numpy as np
@@ -30,6 +29,7 @@ logging.captureWarnings(True)
 
 # Replace the existing logging configuration with:
 def setup_logging():
+    """Set up logging configuration"""
     logger = logging.getLogger('clustering')
     logger.setLevel(logging.DEBUG)
     
@@ -52,17 +52,37 @@ def setup_logging():
     
     return logger
 
+# Initialize logger
+logger = setup_logging()
+
 # Initialize NLTK components
-nltk.download('punkt')
-nltk.download('wordnet')
-nltk.download('stopwords')
+try:
+    logger.info("Initializing NLTK components")
+    nltk.download('punkt')
+    nltk.download('wordnet')
+    nltk.download('stopwords')
+    logger.info("NLTK components initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize NLTK components: {str(e)}", exc_info=True)
+    raise
 
 # Initialize stop words
-stop_words = set(stopwords.words('english'))
-nltk.download('wordnet')
+try:
+    logger.info("Initializing stop words")
+    stop_words = set(stopwords.words('english'))
+    logger.info("Stop words initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize stop words: {str(e)}", exc_info=True)
+    raise
 
 # Initialize lemmatizer
-lemmatizer = nltk.WordNetLemmatizer()
+try:
+    logger.info("Initializing lemmatizer")
+    lemmatizer = nltk.WordNetLemmatizer()
+    logger.info("Lemmatizer initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize lemmatizer: {str(e)}", exc_info=True)
+    raise
 
 class DataAnalysisApp:
     def __init__(self, root):
@@ -120,135 +140,184 @@ class DataAnalysisApp:
 
     def create_menu(self):
         """Create application menu bar"""
-        menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
+        try:
+            logger.debug("Creating menu bar")
+            menubar = tk.Menu(self.root)
+            self.root.config(menu=menubar)
 
-        # File menu
-        file_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Load Quantitative Data", command=self.load_quant_data)
-        file_menu.add_command(label="Load Qualitative Data", command=self.load_qual_data)
-        file_menu.add_separator()
-        file_menu.add_command(label="Export Results", command=self.export_results)
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.root.quit)
+            # File menu
+            file_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="File", menu=file_menu)
+            file_menu.add_command(label="Load Quantitative Data", command=self.load_quant_data)
+            file_menu.add_command(label="Load Qualitative Data", command=self.load_qual_data)
+            file_menu.add_separator()
+            file_menu.add_command(label="Export Results", command=self.export_results)
+            file_menu.add_separator()
+            file_menu.add_command(label="Exit", command=self.root.quit)
 
-        # Analysis menu
-        analysis_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Analysis", menu=analysis_menu)
-        analysis_menu.add_command(label="Preprocess Data", command=self.preprocess_data)
-        analysis_menu.add_command(label="Cluster Analysis", command=self.show_clustering_options)
-        analysis_menu.add_command(label="Statistical Analysis", command=self.statistical_analysis)
+            # Analysis menu
+            analysis_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="Analysis", menu=analysis_menu)
+            analysis_menu.add_command(label="Preprocess Data", command=self.preprocess_data)
+            analysis_menu.add_command(label="Cluster Analysis", command=self.show_clustering_options)
+            analysis_menu.add_command(label="Statistical Analysis", command=self.statistical_analysis)
 
-        # Settings menu
-        settings_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Settings", menu=settings_menu)
-        settings_menu.add_command(label="Clustering Parameters", command=self.show_cluster_settings)
-        settings_menu.add_command(label="Visualization Options", command=self.show_viz_settings)
+            # Settings menu
+            settings_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="Settings", menu=settings_menu)
+            settings_menu.add_command(label="Clustering Parameters", command=self.show_cluster_settings)
+            settings_menu.add_command(label="Visualization Options", command=self.show_viz_settings)
 
-        # Help menu
-        help_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Help", menu=help_menu)
-        help_menu.add_command(label="Documentation", command=self.show_documentation)
-        help_menu.add_command(label="About", command=self.show_about)
+            # Help menu
+            help_menu = tk.Menu(menubar, tearoff=0)
+            menubar.add_cascade(label="Help", menu=help_menu)
+            help_menu.add_command(label="Documentation", command=self.show_documentation)
+            help_menu.add_command(label="About", command=self.show_about)
+
+            logger.debug("Menu bar created successfully")
+        except Exception as e:
+            logger.error(f"Error creating menu: {str(e)}", exc_info=True)
+            raise
 
     def create_widgets(self):
         """Create and arrange all GUI widgets"""
-        # Create notebook for tabbed interface
-        self.notebook = ttk.Notebook(self.main_container)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
+        try:
+            logger.debug("Creating GUI widgets")
+            # Create notebook for tabbed interface
+            self.notebook = ttk.Notebook(self.main_container)
+            self.notebook.pack(fill=tk.BOTH, expand=True)
 
-        # Data tab
-        self.data_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.data_frame, text="Data Management")
-        
-        # Analysis tab
-        self.analysis_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.analysis_frame, text="Analysis")
-        
-        # Visualization tab
-        self.viz_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.viz_frame, text="Visualization")
-        
-        # Results tab
-        self.results_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.results_frame, text="Results")
+            # Data tab
+            self.data_frame = ttk.Frame(self.notebook)
+            self.notebook.add(self.data_frame, text="Data Management")
+            
+            # Analysis tab
+            self.analysis_frame = ttk.Frame(self.notebook)
+            self.notebook.add(self.analysis_frame, text="Analysis")
+            
+            # Visualization tab
+            self.viz_frame = ttk.Frame(self.notebook)
+            self.notebook.add(self.viz_frame, text="Visualization")
+            
+            # Results tab
+            self.results_frame = ttk.Frame(self.notebook)
+            self.notebook.add(self.results_frame, text="Results")
 
-        self.setup_data_frame()
-        self.setup_analysis_frame()
-        self.setup_viz_frame()
-        self.setup_results_frame()
+            self.setup_data_frame()
+            self.setup_analysis_frame()
+            self.setup_viz_frame()
+            self.setup_results_frame()
+            logger.debug("GUI widgets created successfully")
+        except Exception as e:
+            logger.error(f"Error creating widgets: {str(e)}", exc_info=True)
+            raise
 
     def setup_data_frame(self):
         """Setup the data management tab"""
-        # File loading section
-        load_frame = ttk.LabelFrame(self.data_frame, text="Data Loading")
-        load_frame.pack(fill=tk.X, padx=5, pady=5)
+        try:
+            logger.debug("Setting up data management frame")
+            # File loading section
+            load_frame = ttk.LabelFrame(self.data_frame, text="Data Loading")
+            load_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        ttk.Button(load_frame, text="Load Quantitative Data", command=self.load_quant_data).pack(side=tk.LEFT, padx=5, pady=5)
-        ttk.Button(load_frame, text="Load Qualitative Data", command=self.load_qual_data).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(load_frame, text="Load Quantitative Data", command=self.load_quant_data).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(load_frame, text="Load Qualitative Data", command=self.load_qual_data).pack(side=tk.LEFT, padx=5, pady=5)
 
-        # Data preview section
-        preview_frame = ttk.LabelFrame(self.data_frame, text="Data Preview")
-        preview_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            # Data preview section
+            preview_frame = ttk.LabelFrame(self.data_frame, text="Data Preview")
+            preview_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        self.preview_text = tk.Text(preview_frame, height=20)
-        self.preview_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            self.preview_text = tk.Text(preview_frame, height=20)
+            self.preview_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            logger.debug("Data management frame setup completed")
+        except Exception as e:
+            logger.error(f"Error setting up data frame: {str(e)}", exc_info=True)
+            raise
 
     def setup_analysis_frame(self):
         """Setup the analysis tab"""
-        # Analysis options
-        options_frame = ttk.LabelFrame(self.analysis_frame, text="Analysis Options")
-        options_frame.pack(fill=tk.X, padx=5, pady=5)
+        try:
+            logger.debug("Setting up analysis frame")
+            # Analysis options
+            options_frame = ttk.LabelFrame(self.analysis_frame, text="Analysis Options")
+            options_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        ttk.Button(options_frame, text="Preprocess Data", command=self.preprocess_data).pack(side=tk.LEFT, padx=5, pady=5)
-        ttk.Button(options_frame, text="Cluster Analysis", command=self.show_clustering_options).pack(side=tk.LEFT, padx=5, pady=5)
-        ttk.Button(options_frame, text="Statistical Analysis", command=self.statistical_analysis).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(options_frame, text="Preprocess Data", command=self.preprocess_data).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(options_frame, text="Cluster Analysis", command=self.show_clustering_options).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(options_frame, text="Statistical Analysis", command=self.statistical_analysis).pack(side=tk.LEFT, padx=5, pady=5)
 
-        # Analysis output
-        output_frame = ttk.LabelFrame(self.analysis_frame, text="Analysis Output")
-        output_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            # Analysis output
+            output_frame = ttk.LabelFrame(self.analysis_frame, text="Analysis Output")
+            output_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        self.analysis_text = tk.Text(output_frame, height=20)
-        self.analysis_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            self.analysis_text = tk.Text(output_frame, height=20)
+            self.analysis_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            logger.debug("Analysis frame setup completed")
+        except Exception as e:
+            logger.error(f"Error setting up analysis frame: {str(e)}", exc_info=True)
+            raise
 
     def setup_viz_frame(self):
         """Setup the visualization tab"""
-        # Visualization controls
-        controls_frame = ttk.LabelFrame(self.viz_frame, text="Visualization Controls")
-        controls_frame.pack(fill=tk.X, padx=5, pady=5)
+        try:
+            logger.debug("Setting up visualization frame")
+            # Visualization controls
+            controls_frame = ttk.LabelFrame(self.viz_frame, text="Visualization Controls")
+            controls_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        ttk.Button(controls_frame, text="Plot Clusters", command=self.visualize_results).pack(side=tk.LEFT, padx=5, pady=5)
-        ttk.Button(controls_frame, text="Export Plot", command=self.export_plot).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(controls_frame, text="Plot Clusters", 
+                  command=self.visualize_results).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(controls_frame, text="Export Plot", 
+                  command=self.export_plot).pack(side=tk.LEFT, padx=5, pady=5)
 
-        # Plot area
-        self.plot_frame = ttk.Frame(self.viz_frame)
-        self.plot_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            # Plot area
+            self.plot_frame = ttk.Frame(self.viz_frame)
+            self.plot_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            logger.debug("Visualization frame setup completed")
+        except Exception as e:
+            logger.error(f"Error setting up visualization frame: {str(e)}", exc_info=True)
+            raise
 
     def setup_results_frame(self):
         """Setup the results tab"""
-        # Results controls
-        controls_frame = ttk.LabelFrame(self.results_frame, text="Results Options")
-        controls_frame.pack(fill=tk.X, padx=5, pady=5)
+        try:
+            logger.debug("Setting up results frame")
+            # Results controls
+            controls_frame = ttk.LabelFrame(self.results_frame, text="Results Options")
+            controls_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        ttk.Button(controls_frame, text="Export Results", command=self.export_results).pack(side=tk.LEFT, padx=5, pady=5)
-        ttk.Button(controls_frame, text="Clear Results", command=self.clear_results).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(controls_frame, text="Export Results", command=self.export_results).pack(side=tk.LEFT, padx=5, pady=5)
+            ttk.Button(controls_frame, text="Clear Results", command=self.clear_results).pack(side=tk.LEFT, padx=5, pady=5)
 
-        # Results display
-        self.results_text = tk.Text(self.results_frame, height=20)
-        self.results_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            # Results display
+            self.results_text = tk.Text(self.results_frame, height=20)
+            self.results_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            logger.debug("Results frame setup completed")
+        except Exception as e:
+            logger.error(f"Error setting up results frame: {str(e)}", exc_info=True)
+            raise
 
     def create_status_bar(self):
         """Create status bar for displaying messages"""
-        self.status_var = tk.StringVar()
-        self.status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.update_status("Ready")
+        try:
+            logger.debug("Creating status bar")
+            self.status_var = tk.StringVar()
+            self.status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
+            self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+            self.update_status("Ready")
+            logger.debug("Status bar created successfully")
+        except Exception as e:
+            logger.error(f"Error creating status bar: {str(e)}", exc_info=True)
+            raise
 
     def update_status(self, message):
         """Update status bar message"""
-        self.status_var.set(message)
-        self.root.update_idletasks()
+        try:
+            logger.debug(f"Updating status bar: {message}")
+            self.status_var.set(message)
+            self.root.update_idletasks()
+        except Exception as e:
+            logger.error(f"Error updating status: {str(e)}", exc_info=True)
 
     def load_config(self):
         """Load configuration from file with enhanced error handling"""
@@ -272,15 +341,19 @@ class DataAnalysisApp:
     def save_config(self):
         """Save configuration to file"""
         try:
+            logger.info("Saving configuration")
             with open('analysis_config.json', 'w') as f:
                 json.dump(self.config, f)
+            logger.info("Configuration saved successfully")
         except Exception as e:
             logger.error(f"Error saving config: {str(e)}", exc_info=True)
             messagebox.showwarning("Config Error", f"Error saving configuration: {str(e)}")
 
     def export_results(self):
         """Export analysis results to file"""
+        logger.info("Attempting to export results")
         if not self.analysis_results:
+            logger.warning("No results to export")
             messagebox.showwarning("Warning", "No results to export.")
             return
 
@@ -292,6 +365,7 @@ class DataAnalysisApp:
             if filename:
                 with open(filename, 'w') as f:
                     json.dump(self.analysis_results, f, indent=4)
+                logger.info(f"Results exported successfully to {filename}")
                 self.update_status(f"Results exported to {filename}")
         except Exception as e:
             logger.error(f"Error exporting results: {str(e)}", exc_info=True)
@@ -299,21 +373,27 @@ class DataAnalysisApp:
 
     def show_clustering_options(self):
         """Show dialog for clustering options"""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Clustering Options")
-        dialog.geometry("300x200")
-        
-        ttk.Label(dialog, text="Number of clusters:").pack(pady=5)
-        n_clusters = ttk.Entry(dialog)
-        n_clusters.insert(0, str(self.config['default_clusters']))
-        n_clusters.pack(pady=5)
-        
-        ttk.Button(dialog, text="K-Means", 
-                  command=lambda: self.cluster_data('kmeans', int(n_clusters.get()))).pack(pady=5)
-        ttk.Button(dialog, text="DBSCAN", 
-                  command=lambda: self.cluster_data('dbscan')).pack(pady=5)
-        ttk.Button(dialog, text="Hierarchical", 
-                  command=lambda: self.cluster_data('hierarchical', int(n_clusters.get()))).pack(pady=5)
+        logger.info("Opening clustering options dialog")
+        try:
+            dialog = tk.Toplevel(self.root)
+            dialog.title("Clustering Options")
+            dialog.geometry("300x200")
+            
+            ttk.Label(dialog, text="Number of clusters:").pack(pady=5)
+            n_clusters = ttk.Entry(dialog)
+            n_clusters.insert(0, str(self.config['default_clusters']))
+            n_clusters.pack(pady=5)
+            
+            ttk.Button(dialog, text="K-Means", 
+                      command=lambda: self.cluster_data('kmeans', int(n_clusters.get()))).pack(pady=5)
+            ttk.Button(dialog, text="DBSCAN", 
+                      command=lambda: self.cluster_data('dbscan')).pack(pady=5)
+            ttk.Button(dialog, text="Hierarchical", 
+                      command=lambda: self.cluster_data('hierarchical', int(n_clusters.get()))).pack(pady=5)
+            logger.debug("Clustering options dialog created successfully")
+        except Exception as e:
+            logger.error(f"Error showing clustering options: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to show clustering options: {str(e)}")
 
     def cluster_data(self, method='kmeans', n_clusters=5):
         """Perform clustering analysis with enhanced error handling and logging"""
@@ -371,21 +451,28 @@ class DataAnalysisApp:
 
     def show_clustering_results(self):
         """Display clustering results"""
-        results = f"Clustering Results:\n"
-        results += f"Number of clusters: {len(self.qual_data['cluster'].unique())}\n"
-        results += f"Cluster sizes:\n{self.qual_data['cluster'].value_counts()}\n\n"
-        
-        if self.cluster_metrics:
-            results += f"Clustering Metrics:\n"
-            results += f"Silhouette Score: {self.cluster_metrics['silhouette']:.3f}\n"
-            results += f"Calinski-Harabasz Score: {self.cluster_metrics['calinski']:.3f}\n"
+        try:
+            logger.debug("Displaying clustering results")
+            results = f"Clustering Results:\n"
+            results += f"Number of clusters: {len(self.qual_data['cluster'].unique())}\n"
+            results += f"Cluster sizes:\n{self.qual_data['cluster'].value_counts()}\n\n"
+            
+            if self.cluster_metrics:
+                results += f"Clustering Metrics:\n"
+                results += f"Silhouette Score: {self.cluster_metrics['silhouette']:.3f}\n"
+                results += f"Calinski-Harabasz Score: {self.cluster_metrics['calinski']:.3f}\n"
 
-        self.results_text.delete(1.0, tk.END)
-        self.results_text.insert(tk.END, results)
+            self.results_text.delete(1.0, tk.END)
+            self.results_text.insert(tk.END, results)
+            logger.debug("Clustering results displayed successfully")
+        except Exception as e:
+            logger.error(f"Error displaying clustering results: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to display clustering results: {str(e)}")
 
     def preprocess_text(self, text):
         """Enhanced text preprocessing"""
         try:
+            logger.debug("Preprocessing text")
             # Convert to string and lowercase
             text = str(text).lower()
             
@@ -398,19 +485,24 @@ class DataAnalysisApp:
             # Lemmatize
             tokens = [lemmatizer.lemmatize(t) for t in tokens]
             
-            return " ".join(tokens)
+            processed_text = " ".join(tokens)
+            logger.debug("Text preprocessing completed successfully")
+            return processed_text
         except Exception as e:
-            logging.error(f"Error in text preprocessing: {str(e)}")
+            logger.error(f"Error in text preprocessing: {str(e)}", exc_info=True)
             return ""
 
     def visualize_results(self):
         """Enhanced visualization of results"""
+        logger.info("Starting results visualization")
         if self.tfidf_matrix is None or 'cluster' not in self.qual_data.columns:
+            logger.warning("Attempted visualization without clustering results")
             messagebox.showwarning("Warning", "Please perform clustering before visualization.")
             return
 
         try:
             # Create figure with subplots
+            logger.debug("Creating visualization plots")
             fig = plt.figure(figsize=(15, 10))
             
             # PCA visualization
@@ -436,34 +528,44 @@ class DataAnalysisApp:
             
             # Display in GUI
             self.display_plot(fig)
+            logger.info("Visualization completed successfully")
             
         except Exception as e:
-            logging.error(f"Error in visualization: {str(e)}")
+            logger.error(f"Error in visualization: {str(e)}", exc_info=True)
             messagebox.showerror("Error", f"Visualization failed: {str(e)}")
 
     def display_plot(self, fig):
         """Display plot in GUI with navigation toolbar"""
-        # Clear existing plot frame
-        for widget in self.plot_frame.winfo_children():
-            widget.destroy()
+        try:
+            logger.debug("Displaying plot in GUI")
+            # Clear existing plot frame
+            for widget in self.plot_frame.winfo_children():
+                widget.destroy()
 
-        # Create canvas and toolbar
-        canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
-        canvas.draw()
-        
-        toolbar = NavigationToolbar2Tk(canvas, self.plot_frame)
-        toolbar.update()
-        
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            # Create canvas and toolbar
+            canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
+            canvas.draw()
+            
+            toolbar = NavigationToolbar2Tk(canvas, self.plot_frame)
+            toolbar.update()
+            
+            canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+            logger.debug("Plot displayed successfully")
+        except Exception as e:
+            logger.error(f"Error displaying plot: {str(e)}", exc_info=True)
+            raise
 
     def statistical_analysis(self):
         """Perform comprehensive statistical analysis"""
+        logger.info("Starting statistical analysis")
         if self.quant_data is None or 'cluster' not in self.qual_data.columns:
+            logger.warning("Attempted analysis without required data")
             messagebox.showwarning("Warning", "Please ensure data is clustered before analysis.")
             return
 
         try:
             # Merge data
+            logger.debug("Merging quantitative and qualitative data")
             self.combined_data = pd.merge(self.quant_data, 
                                         self.qual_data[['ID', 'cluster']], 
                                         on='ID')
@@ -474,10 +576,12 @@ class DataAnalysisApp:
             self.analysis_results['inferential'] = {}
             
             # Descriptive statistics
+            logger.debug("Calculating descriptive statistics")
             desc_stats = self.combined_data.groupby('cluster').describe()
             self.analysis_results['descriptive']['cluster_stats'] = desc_stats.to_dict()
             
             # ANOVA
+            logger.debug("Performing ANOVA tests")
             numeric_cols = self.combined_data.select_dtypes(include=[np.number]).columns
             anova_results = {}
             for col in numeric_cols:
@@ -490,13 +594,65 @@ class DataAnalysisApp:
             
             # Display results
             self.show_statistical_results()
+            logger.info("Statistical analysis completed successfully")
             
         except Exception as e:
-            logging.error(f"Error in statistical analysis: {str(e)}")
+            logger.error(f"Error in statistical analysis: {str(e)}", exc_info=True)
             messagebox.showerror("Error", f"Statistical analysis failed: {str(e)}")
 
     def show_statistical_results(self):
         """Display statistical analysis results"""
+        try:
+            logger.debug("Displaying statistical analysis results")
+            results = "Statistical Analysis Results\n"
+            results += "=" * 50 + "\n\n"
+            
+            # Descriptive statistics
+            results += "Descriptive Statistics by Cluster:\n"
+            results += "-" * 30 + "\n"
+            for cluster in sorted(self.combined_data['cluster'].unique()):
+                cluster_data = self.combined_data[self.combined_data['cluster'] == cluster]
+                results += f"\nCluster {cluster} (n={len(cluster_data)}):\n"
+                results += cluster_data.describe().to_string() + "\n"
+            
+            # ANOVA results
+            results += "\nANOVA Results:\n"
+            results += "-" * 30 + "\n"
+            for var, stats in self.analysis_results['inferential']['anova'].items():
+                results += f"\n{var}:\n"
+                results += f"F-statistic: {stats['f_statistic']:.3f}\n"
+                results += f"p-value: {stats['p_value']:.3f}\n"
+            
+            self.results_text.delete(1.0, tk.END)
+            self.results_text.insert(tk.END, results)
+            logger.debug("Statistical results displayed successfully")
+        except Exception as e:
+            logger.error(f"Error displaying statistical results: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to display statistical results: {str(e)}")
+
+    def show_cluster_settings(self):
+        """Show dialog for cluster settings"""
+        logger.debug("Opening cluster settings dialog")
+        try:
+            settings_dialog = tk.Toplevel(self.root)
+            settings_dialog.title("Clustering Parameters")
+            settings_dialog.geometry("400x300")
+        except Exception as e:
+            logger.error(f"Error opening cluster settings dialog: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to open settings dialog: {str(e)}")
+
+            # Create settings form
+            ttk.Label(settings_dialog, text="Default number of clusters:").pack(pady=5)
+            n_clusters = ttk.Entry(settings_dialog)
+            n_clusters.insert(0, str(self.config['default_clusters']))
+            n_clusters.pack(pady=5)
+
+            ttk.Label(settings_dialog, text="Min document frequency:").pack(pady=5)
+            min_df = ttk.Entry(settings_dialog)
+            min_df.insert(0, str(self.config['min_df']))
+            min_df.pack(pady=5)
+
+            ttk.Label(settings_dialog, text="Max document frequency:").pack(pady=5)
         results = "Statistical Analysis Results\n"
         results += "=" * 50 + "\n\n"
         
@@ -731,6 +887,39 @@ class DataAnalysisApp:
         except Exception as e:
             logger.error(f"Error in data preprocessing: {str(e)}", exc_info=True)
             messagebox.showerror("Error", f"Preprocessing failed: {str(e)}")
+
+    def export_plot(self):
+        """Export the current plot to a file"""
+        try:
+            logger.debug("Attempting to export plot")
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".png",
+                filetypes=[
+                    ("PNG files", "*.png"),
+                    ("PDF files", "*.pdf"),
+                    ("All files", "*.*")
+                ]
+            )
+            if filename:
+                plt.savefig(filename, dpi=300, bbox_inches='tight')
+                logger.info(f"Plot exported successfully to {filename}")
+                self.update_status(f"Plot exported to {filename}")
+        except Exception as e:
+            logger.error(f"Error exporting plot: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to export plot: {str(e)}")
+
+    def clear_results(self):
+        """Clear all results and reset displays"""
+        try:
+            logger.debug("Clearing results")
+            self.results_text.delete(1.0, tk.END)
+            self.analysis_results = {}
+            self.cluster_metrics = {}
+            self.update_status("Results cleared")
+            logger.info("Results cleared successfully")
+        except Exception as e:
+            logger.error(f"Error clearing results: {str(e)}", exc_info=True)
+            messagebox.showerror("Error", f"Failed to clear results: {str(e)}")
 
 if __name__ == "__main__":
     try:

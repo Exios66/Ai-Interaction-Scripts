@@ -6,11 +6,23 @@ from typing import Dict, Union, Optional, List, Tuple
 from dataclasses import dataclass
 
 # Set up logging with more detailed configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Create handlers
+c_handler = logging.StreamHandler()
+f_handler = logging.FileHandler('cronbach.log')
+c_handler.setLevel(logging.DEBUG)
+f_handler.setLevel(logging.DEBUG)
+
+# Create formatters and add to handlers
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+c_handler.setFormatter(formatter)
+f_handler.setFormatter(formatter)
+
+# Add handlers to logger
+logger.addHandler(c_handler)
+logger.addHandler(f_handler)
 
 @dataclass
 class CronbachResults:
@@ -37,28 +49,36 @@ def validate_data(df: pd.DataFrame, min_rows: int = 2, min_cols: int = 2) -> Non
         TypeError: If input is not a DataFrame or contains non-numeric data
         ValueError: If data doesn't meet size requirements or has other issues
     """
+    logger.debug("Starting data validation")
+    
     if not isinstance(df, pd.DataFrame):
+        logger.error("Input is not a pandas DataFrame")
         raise TypeError("Input must be a pandas DataFrame")
     
     if df.shape[0] < min_rows:
+        logger.error(f"Insufficient rows: {df.shape[0]} < {min_rows}")
         raise ValueError(f"Data must have at least {min_rows} rows (participants)")
         
     if df.shape[1] < min_cols:
+        logger.error(f"Insufficient columns: {df.shape[1]} < {min_cols}")
         raise ValueError(f"Data must have at least {min_cols} columns (items)")
         
     if df.isna().any().any():
-        logging.warning("Data contains missing values which may affect results")
+        logger.warning("Data contains missing values which may affect results")
         
     if not all(np.issubdtype(dtype, np.number) for dtype in df.dtypes):
+        logger.error("Non-numeric data found in DataFrame")
         raise TypeError("All columns must contain numeric data")
         
     # Check for constant columns
     if (df.std() == 0).any():
-        logging.warning("One or more items have zero variance")
+        logger.warning("One or more items have zero variance")
         
     # Check for reasonable value ranges
     if (df < 0).any().any():
-        logging.warning("Data contains negative values - verify this is intended")
+        logger.warning("Data contains negative values - verify this is intended")
+        
+    logger.debug("Data validation completed successfully")
 
 def calculate_confidence_interval(
     alpha: float, 
@@ -67,6 +87,8 @@ def calculate_confidence_interval(
     confidence: float = 0.95
 ) -> Tuple[float, float]:
     """Calculate confidence interval for Cronbach's alpha."""
+    logger.debug(f"Calculating confidence interval with alpha={alpha}, n_items={n_items}, n_subjects={n_subjects}")
+    
     # Using Fisher's transformation
     z = np.arctanh(alpha)
     se = np.sqrt(2 * (1 - alpha**2) / ((n_items - 1) * (n_subjects - 2)))
@@ -75,10 +97,13 @@ def calculate_confidence_interval(
     lower = np.tanh(z - z_crit * se)
     upper = np.tanh(z + z_crit * se)
     
+    logger.debug(f"Confidence interval calculated: ({lower:.3f}, {upper:.3f})")
     return (lower, upper)
 
 def calculate_item_statistics(df: pd.DataFrame) -> pd.DataFrame:
     """Calculate comprehensive item-level statistics."""
+    logger.debug("Calculating item statistics")
+    
     stats_df = pd.DataFrame({
         'Mean': df.mean(),
         'Std': df.std(),
@@ -87,6 +112,8 @@ def calculate_item_statistics(df: pd.DataFrame) -> pd.DataFrame:
         'Min': df.min(),
         'Max': df.max()
     })
+    
+    logger.debug("Item statistics calculation completed")
     return stats_df
 
 def cronbach_alpha(
@@ -114,38 +141,46 @@ def cronbach_alpha(
         - scale_statistics: Overall scale statistics
     """
     try:
+        logger.info("Starting Cronbach's alpha calculation")
         validate_data(df)
-        logging.info("Data validation passed. Processing comprehensive analysis...")
         
         # Handle missing values
         if handle_missing == 'listwise':
+            logger.debug("Using listwise deletion for missing values")
             df = df.dropna()
         elif handle_missing == 'impute':
+            logger.debug("Imputing missing values with column means")
             df = df.fillna(df.mean())
             
         # Number of items and participants
         N = df.shape[1]
         n_subjects = df.shape[0]
+        logger.debug(f"Processing data with {N} items and {n_subjects} subjects")
         
         # Variance calculations
         item_variances = df.var(axis=0, ddof=1)
         total_scores = df.sum(axis=1)
         var_total = total_scores.var(ddof=1)
+        logger.debug(f"Total variance: {var_total:.3f}")
         
         # Calculate alpha
         alpha = (N / (N - 1)) * (1 - item_variances.sum() / var_total)
+        logger.info(f"Calculated Cronbach's alpha: {alpha:.3f}")
         
         # Calculate confidence interval and standard error
         ci = calculate_confidence_interval(alpha, N, n_subjects, confidence)
         std_error = (ci[1] - ci[0]) / (2 * stats.norm.ppf((1 + confidence) / 2))
+        logger.debug(f"Standard error: {std_error:.3f}")
         
         # Item-total correlations
+        logger.debug("Calculating item-total correlations")
         item_total_correlations = pd.Series(
             {col: df[col].corr(total_scores - df[col]) for col in df.columns},
             name="Item-Total Correlations"
         )
         
         # Alpha if item deleted
+        logger.debug("Calculating alpha if item deleted")
         alpha_if_deleted = pd.Series(
             {col: cronbach_alpha(df.drop(columns=col))['alpha'] for col in df.columns},
             name="Alpha if Item Deleted"
@@ -155,6 +190,7 @@ def cronbach_alpha(
         item_stats = calculate_item_statistics(df)
         
         # Calculate inter-item correlations
+        logger.debug("Calculating inter-item correlations")
         inter_item_corr = df.corr()
         
         # Calculate scale statistics
@@ -165,6 +201,7 @@ def cronbach_alpha(
             'n_items': N,
             'n_subjects': n_subjects
         }
+        logger.debug("Scale statistics calculated")
         
         results = CronbachResults(
             alpha=alpha,
@@ -177,14 +214,17 @@ def cronbach_alpha(
             scale_statistics=scale_stats
         )
         
+        logger.info("Cronbach's alpha calculation completed successfully")
         return results
         
     except Exception as e:
-        logging.error(f"Error calculating Cronbach's alpha: {str(e)}")
+        logger.error(f"Error calculating Cronbach's alpha: {str(e)}", exc_info=True)
         raise
 
 def display_results(results: CronbachResults, detailed: bool = True) -> None:
     """Display formatted results of the Cronbach's alpha analysis."""
+    logger.info("Displaying analysis results")
+    
     print("\nCRONBACH'S ALPHA ANALYSIS")
     print("=" * 70)
     
@@ -213,10 +253,14 @@ def display_results(results: CronbachResults, detailed: bool = True) -> None:
         print("\nInter-Item Correlations:")
         print("-" * 70)
         print(results.inter_item_correlations.round(3))
+    
+    logger.debug("Results display completed")
 
 # Example usage with error handling
 if __name__ == "__main__":
     try:
+        logger.info("Starting sample analysis")
+        
         # Sample data
         data = {
             'Item1': [4, 3, 5, 2, 4, 5, 3, 2],
@@ -226,11 +270,13 @@ if __name__ == "__main__":
         }
         
         df = pd.DataFrame(data)
-        logging.info("Processing sample data...")
+        logger.debug("Sample data created successfully")
         
         results = cronbach_alpha(df)
         display_results(results)
         
+        logger.info("Sample analysis completed successfully")
+        
     except Exception as e:
-        logging.error(f"Program execution failed: {str(e)}")
+        logger.error(f"Program execution failed: {str(e)}", exc_info=True)
         raise
