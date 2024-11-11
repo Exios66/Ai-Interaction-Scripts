@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from venv import logger
+import warnings
 import pandas as pd
 import numpy as np
 import nltk
@@ -21,15 +23,35 @@ import os
 from datetime import datetime
 import sys
 import traceback
-from ..utils.logging_config import setup_logging
-import warnings
 
 # Configure warnings to be captured by logging
 warnings.filterwarnings('always')
 logging.captureWarnings(True)
 
 # Replace the existing logging configuration with:
-logger = setup_logging()
+def setup_logging():
+    logger = logging.getLogger('clustering')
+    logger.setLevel(logging.DEBUG)
+    
+    # Create handlers
+    c_handler = logging.StreamHandler()
+    f_handler = logging.FileHandler('clustering.log')
+    c_handler.setLevel(logging.INFO)
+    f_handler.setLevel(logging.DEBUG)
+    
+    # Create formatters and add it to handlers
+    format_str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    c_format = logging.Formatter(format_str)
+    f_format = logging.Formatter(format_str)
+    c_handler.setFormatter(c_format)
+    f_handler.setFormatter(f_format)
+    
+    # Add handlers to the logger
+    logger.addHandler(c_handler)
+    logger.addHandler(f_handler)
+    
+    return logger
+
 # Initialize NLTK components
 nltk.download('punkt')
 nltk.download('wordnet')
