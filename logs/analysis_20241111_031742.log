@@ -1,0 +1,72 @@
+2024-11-11 03:17:42,972 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: punkt
+2024-11-11 03:17:42,972 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: punkt
+2024-11-11 03:17:43,147 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: stopwords
+2024-11-11 03:17:43,147 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: stopwords
+2024-11-11 03:17:43,148 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: averaged_perceptron_tagger
+2024-11-11 03:17:43,148 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: averaged_perceptron_tagger
+2024-11-11 03:17:43,154 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: wordnet
+2024-11-11 03:17:43,154 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: wordnet
+2024-11-11 03:17:43,177 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: omw-1.4
+2024-11-11 03:17:43,177 - root - INFO - run.py:22 - initialize_nltk - Downloading NLTK package: omw-1.4
+2024-11-11 03:17:43,226 - root - INFO - run.py:32 - initialize_nltk - Tokenizer test successful: ['Test sentence.', 'Another test.']
+2024-11-11 03:17:43,226 - root - INFO - run.py:32 - initialize_nltk - Tokenizer test successful: ['Test sentence.', 'Another test.']
+2024-11-11 03:17:43,226 - root - INFO - open_end.py:20 - __init__ - Initializing OpenEndedAnalysis
+2024-11-11 03:17:43,226 - root - INFO - open_end.py:20 - __init__ - Initializing OpenEndedAnalysis
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: punkt
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: punkt
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: stopwords
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: stopwords
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: averaged_perceptron_tagger
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: averaged_perceptron_tagger
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: wordnet
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: wordnet
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: omw-1.4
+2024-11-11 03:17:43,226 - root - DEBUG - open_end.py:44 - _download_nltk_data - Checking/Downloading NLTK package: omw-1.4
+2024-11-11 03:17:43,239 - root - INFO - open_end.py:53 - _download_nltk_data - Tokenizer test successful: ['Test sentence.', 'Another test.']
+2024-11-11 03:17:43,239 - root - INFO - open_end.py:53 - _download_nltk_data - Tokenizer test successful: ['Test sentence.', 'Another test.']
+2024-11-11 03:17:43,239 - root - INFO - open_end.py:58 - _download_nltk_data - All required NLTK packages downloaded successfully
+2024-11-11 03:17:43,239 - root - INFO - open_end.py:58 - _download_nltk_data - All required NLTK packages downloaded successfully
+2024-11-11 03:17:43,240 - root - INFO - open_end.py:70 - _initialize_tokenizer - Sentence tokenizer initialized successfully
+2024-11-11 03:17:43,240 - root - INFO - open_end.py:70 - _initialize_tokenizer - Sentence tokenizer initialized successfully
+2024-11-11 03:17:43,240 - root - INFO - open_end.py:24 - __init__ - Initialization complete
+2024-11-11 03:17:43,240 - root - INFO - open_end.py:24 - __init__ - Initialization complete
+2024-11-11 03:17:43,240 - root - INFO - open_end.py:105 - quantify_responses - Processing 4 responses
+2024-11-11 03:17:43,240 - root - INFO - open_end.py:105 - quantify_responses - Processing 4 responses
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:109 - quantify_responses - Processing response: 'Fake news is misinformation spread on social media.'
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:109 - quantify_responses - Processing response: 'Fake news is misinformation spread on social media.'
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:123 - quantify_responses - Coding result for response: {'misinformation': 1, 'intentionally deceptive': 0, 'platform': 1, 'purpose': 0}
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:123 - quantify_responses - Coding result for response: {'misinformation': 1, 'intentionally deceptive': 0, 'platform': 1, 'purpose': 0}
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:109 - quantify_responses - Processing response: 'Fake news is news that is intentionally deceptive.'
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:109 - quantify_responses - Processing response: 'Fake news is news that is intentionally deceptive.'
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:123 - quantify_responses - Coding result for response: {'misinformation': 1, 'intentionally deceptive': 1, 'platform': 0, 'purpose': 0}
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:123 - quantify_responses - Coding result for response: {'misinformation': 1, 'intentionally deceptive': 1, 'platform': 0, 'purpose': 0}
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:109 - quantify_responses - Processing response: 'I think fake news is a lie that people share to create chaos.'
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:109 - quantify_responses - Processing response: 'I think fake news is a lie that people share to create chaos.'
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:123 - quantify_responses - Coding result for response: {'misinformation': 1, 'intentionally deceptive': 0, 'platform': 0, 'purpose': 1}
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:123 - quantify_responses - Coding result for response: {'misinformation': 1, 'intentionally deceptive': 0, 'platform': 0, 'purpose': 1}
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:109 - quantify_responses - Processing response: 'False stories that are made up to mislead the public.'
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:109 - quantify_responses - Processing response: 'False stories that are made up to mislead the public.'
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:123 - quantify_responses - Coding result for response: {'misinformation': 1, 'intentionally deceptive': 0, 'platform': 0, 'purpose': 1}
+2024-11-11 03:17:43,240 - root - DEBUG - open_end.py:123 - quantify_responses - Coding result for response: {'misinformation': 1, 'intentionally deceptive': 0, 'platform': 0, 'purpose': 1}
+2024-11-11 03:17:43,242 - root - INFO - open_end.py:127 - quantify_responses - Response coding completed successfully
+2024-11-11 03:17:43,242 - root - INFO - open_end.py:127 - quantify_responses - Response coding completed successfully
+2024-11-11 03:17:43,248 - root - INFO - open_end.py:145 - quantify_verification_steps - Quantifying verification steps
+2024-11-11 03:17:43,248 - root - INFO - open_end.py:145 - quantify_verification_steps - Quantifying verification steps
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:149 - quantify_verification_steps - Processing response for verification steps: 'I cross-check the information with reliable news sources.'
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:149 - quantify_verification_steps - Processing response for verification steps: 'I cross-check the information with reliable news sources.'
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:164 - quantify_verification_steps - Identified 1 steps in response
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:164 - quantify_verification_steps - Identified 1 steps in response
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:149 - quantify_verification_steps - Processing response for verification steps: 'First I check the source. Then I verify the date. Finally I look for other coverage.'
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:149 - quantify_verification_steps - Processing response for verification steps: 'First I check the source. Then I verify the date. Finally I look for other coverage.'
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:164 - quantify_verification_steps - Identified 3 steps in response
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:164 - quantify_verification_steps - Identified 3 steps in response
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:149 - quantify_verification_steps - Processing response for verification steps: 'Compare with official statements'
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:149 - quantify_verification_steps - Processing response for verification steps: 'Compare with official statements'
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:164 - quantify_verification_steps - Identified 1 steps in response
+2024-11-11 03:17:43,248 - root - DEBUG - open_end.py:164 - quantify_verification_steps - Identified 1 steps in response
+2024-11-11 03:17:43,248 - root - INFO - open_end.py:166 - quantify_verification_steps - Verification step quantification completed
+2024-11-11 03:17:43,248 - root - INFO - open_end.py:166 - quantify_verification_steps - Verification step quantification completed
+2024-11-11 03:17:43,248 - root - INFO - open_end.py:185 - analyze_themes - Analyzing response themes
+2024-11-11 03:17:43,248 - root - INFO - open_end.py:185 - analyze_themes - Analyzing response themes
+2024-11-11 03:17:43,249 - root - INFO - open_end.py:205 - analyze_themes - Theme analysis complete. Found 2 themes
+2024-11-11 03:17:43,249 - root - INFO - open_end.py:205 - analyze_themes - Theme analysis complete. Found 2 themes

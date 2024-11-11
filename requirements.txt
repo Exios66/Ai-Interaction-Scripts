@@ -1,17 +1,17 @@
 # Data Processing and Analysis
-pandas
-numpy
-nltk
-scikit-learn
-scipy
-matplotlib
-seaborn
+pandas>=1.3.0
+numpy>=1.21.0
+nltk>=3.6.2
+scikit-learn>=0.24.2
+scipy>=1.7.0
+matplotlib>=3.4.2
+seaborn>=0.11.1
 
 # Statistical Analysis
-statsmodels
+statsmodels>=0.13.0
 
 # GUI
-tkinter
+tk>=0.1.0
 
-# Data Visualization
-matplotlib 
+# Logging
+python-json-logger>=2.0.0
