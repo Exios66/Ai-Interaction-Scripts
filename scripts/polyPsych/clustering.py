@@ -22,6 +22,8 @@ import os
 from datetime import datetime
 import sys
 import traceback
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend
 
 # Configure warnings to be captured by logging
 warnings.filterwarnings('always')

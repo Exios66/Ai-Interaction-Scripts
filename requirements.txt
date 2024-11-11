@@ -4,9 +4,18 @@ numpy>=1.21.0
 nltk>=3.6.2
 matplotlib>=3.4.2
 seaborn>=0.11.1
+scikit-learn>=0.24.2
+scipy>=1.7.0
 
 # Statistical Analysis
 statsmodels>=0.13.0
+
+# Web Framework and API
+flask>=2.0.0
+flask-cors>=3.0.10
+flask-socketio>=5.1.1
+werkzeug>=2.0.0
+gunicorn>=20.1.0
 
 # Logging and Debugging
 python-json-logger>=2.0.0
@@ -19,3 +28,7 @@ flake8>=3.9.0
 # Project Structure
 setuptools>=50.0.0
 wheel>=0.37.0
+
+# WebSocket Support
+eventlet>=0.30.2
+gevent>=21.8.0
