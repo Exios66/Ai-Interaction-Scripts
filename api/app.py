@@ -13,12 +13,12 @@ import matplotlib
 matplotlib.use('Agg')  # Set non-interactive backend
 
 # Update the path to point to the project root
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from scripts.polyPsych.open_end import OpenEndedAnalysis
 from scripts.polyPsych.clustering import DataAnalysisApp
 from scripts.polyPsych.cronbach import cronbach_alpha, CronbachResults
-from python.scripts.polyPsych.coin_flip import flip_coin, alter_fact, DEFAULT_FACTS
+from scripts.python.random_python.coin_flip import flip_coin, alter_fact, DEFAULT_FACTS
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
